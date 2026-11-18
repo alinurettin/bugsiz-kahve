@@ -376,7 +376,7 @@ input, select { width: 100%; min-height: 44px; padding: 8px 12px; border: 1px so
     <p class="rank" id="r-rank"></p>
     <p class="stats" id="r-stats"></p>
     <label for="r-text" class="small" style="color:inherit;margin:0">Yoruma yapıştırmak için:</label>
-    <textarea id="r-text" rows="4" readonly></textarea>
+    <textarea id="r-text" rows="5" readonly></textarea>
     <div class="sheet-actions">
       <button type="button" class="t-btn primary" id="btn-copy" data-focus>Sonucu kopyala</button>
       <button type="button" class="t-btn" id="r-continue" data-close="m-result">Aramaya devam et</button>
@@ -860,6 +860,10 @@ input, select { width: 100%; min-height: 44px; padding: 8px 12px; border: 1px so
     disarmReset();
     toastEl.hidden = true;
     openModal('m-result');
+    /* Grow the box to its text so the last line is never cut off on narrow screens. */
+    const ta = $('#r-text');
+    ta.style.height = 'auto';
+    ta.style.height = (ta.scrollHeight + 4) + 'px';
   }
 
   function copyResult() {
