@@ -1,0 +1,933 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="İçine 15 hata saklanmış sahte bir kahve dükkânı. Bir test uzmanı gibi gez, hataları bul, skorunu paylaş.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Bugsız Kahve Bug Avı: 15 bug'dan kaçını bulabilirsin?">
+<meta property="og:description" content="İçine 15 hata saklanmış sahte bir kahve dükkânı. Bir test uzmanı gibi gez, hataları bul, skorunu paylaş.">
+<meta name="twitter:card" content="summary_large_image">
+<meta property="og:url" content="https://alinurettin.github.io/bugsiz-kahve/">
+<meta property="og:image" content="https://alinurettin.github.io/bugsiz-kahve/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="627">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Bugsız Kahve Bug Avı</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Mono:wght@500;600&family=Instrument+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: mobile-first shop column; from 900px it splits into products | cart + checkout.
+   The game layer is a fixed signal-yellow bar and yellow sheets that look foreign to the shop on purpose. */
+:root {
+  --bg: #F2F5F8; --surface: #FFFFFF; --ink: #12223A; --ink-soft: #526278; --line: #D3DCE6;
+  --brand: #1946B8; --on-brand: #FFFFFF; --tile: #E3EBF7; --copper: #A9571F; --on-copper: #FFFFFF;
+  --ok: #156B41; --err: #B3261E; --scrim: rgba(10, 18, 32, .6);
+  --tool: #FFD43B; --tool-ink: #1A190F; --tool-paper: #FFF7D6; --tool-line: rgba(26, 25, 15, .28); --tool-bad: #FF9E8F;
+  --f-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body: "Instrument Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0D1624; --surface: #162134; --ink: #E7EDF5; --ink-soft: #9DAEC4; --line: #2A3A52;
+    --brand: #86ABFF; --on-brand: #0B1424; --tile: #1D2B44; --copper: #E39A62; --on-copper: #1B1208;
+    --ok: #62D194; --err: #FF8E84; --scrim: rgba(0, 0, 0, .7); color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0D1624; --surface: #162134; --ink: #E7EDF5; --ink-soft: #9DAEC4; --line: #2A3A52;
+  --brand: #86ABFF; --on-brand: #0B1424; --tile: #1D2B44; --copper: #E39A62; --on-copper: #1B1208;
+  --ok: #62D194; --err: #FF8E84; --scrim: rgba(0, 0, 0, .7); color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 16px; line-height: 1.5; -webkit-text-size-adjust: 100%; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 30; background: var(--surface); }
+h1, h2, h3, p, ul, ol, dl, dd { margin: 0; }
+ul { padding: 0; list-style: none; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; touch-action: manipulation; }
+:focus-visible { outline: 3px solid var(--brand); outline-offset: 2px; }
+
+.wrap { max-width: 1120px; margin-inline: auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.shop { padding-bottom: calc(var(--tool-h, 120px) + 32px); }
+
+/* ---------- shop: header ---------- */
+.hdr { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; background: var(--surface); border-bottom: 1px solid var(--line); }
+.hdr-in { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-block: 10px; }
+.brand { display: flex; flex-direction: column; line-height: 1.15; min-width: 0; }
+.brand-name { font-family: var(--f-display); font-weight: 800; font-size: 1.375rem; letter-spacing: -.02em; }
+.brand-tag { font-size: .75rem; color: var(--ink-soft); }
+.cartbtn { display: inline-flex; align-items: center; gap: 8px; flex: none; border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 7px 8px 7px 14px; font-weight: 600; }
+.pill { min-width: 28px; padding: 2px 8px; border-radius: 999px; background: var(--brand); color: var(--on-brand); font-variant-numeric: tabular-nums; text-align: center; font-size: .875rem; }
+.promo { background: var(--ink); color: var(--bg); font-size: .8125rem; }
+.promo-in { display: flex; flex-wrap: wrap; gap: 2px 28px; padding-block: 8px; }
+.promo b { font-family: var(--f-mono); font-weight: 600; }
+
+/* ---------- shop: hero + columns ---------- */
+.hero { padding-block: 28px 22px; display: grid; gap: 10px; }
+.hero h1 { font-family: var(--f-display); font-weight: 800; font-size: clamp(2.5rem, 10vw, 4.25rem); line-height: .95; letter-spacing: -.035em; text-wrap: balance; }
+.hero p { max-width: 54ch; color: var(--ink-soft); }
+.cols { display: grid; gap: 28px; align-items: start; }
+.side { display: grid; gap: 20px; min-width: 0; }
+@media (min-width: 900px) { .cols { grid-template-columns: minmax(0, 1fr) 380px; gap: 32px; } }
+h2 { font-family: var(--f-display); font-weight: 600; font-size: 1.375rem; letter-spacing: -.01em; }
+
+/* ---------- shop: controls ---------- */
+label { display: block; font-size: .8125rem; font-weight: 600; color: var(--ink-soft); margin-bottom: 4px; }
+input, select { width: 100%; min-height: 44px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); font-size: 1rem; }
+.btn { min-height: 44px; padding: 8px 16px; border-radius: 8px; border: 1px solid transparent; font-weight: 600; white-space: nowrap; }
+.btn.primary { background: var(--brand); color: var(--on-brand); }
+.btn.ghost { background: transparent; border-color: var(--line); }
+.btn.wide { width: 100%; }
+.msg { font-size: .8125rem; margin-top: 4px; }
+.msg:empty { display: none; }
+.msg.ok { color: var(--ok); }
+.msg.err { color: var(--err); }
+.req { color: var(--err); }
+
+/* ---------- shop: products ---------- */
+.products { display: grid; gap: 14px; min-width: 0; }
+.filters { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 150px); gap: 10px; align-items: end; }
+.count { font-size: .875rem; color: var(--ink-soft); }
+.count:empty { display: none; }
+.grid { display: grid; gap: 12px; }
+.card { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px; }
+.tile { position: relative; background: var(--tile); border-radius: 8px; display: grid; place-items: center; aspect-ratio: 1; align-self: start; max-width: 100%; }
+.tile svg { width: 64px; height: 64px; display: block; }
+.stock { position: absolute; left: 6px; top: 6px; background: var(--copper); color: var(--on-copper); font-size: .6875rem; font-weight: 600; line-height: 1.3; padding: 2px 6px; border-radius: 4px; }
+.card-body { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.info { display: grid; gap: 4px; }
+.info h3 { font-size: 1.0625rem; font-weight: 600; line-height: 1.25; }
+.info p { font-size: .875rem; color: var(--ink-soft); }
+.rating { font-size: .8125rem; font-variant-numeric: tabular-nums; }
+.star { color: var(--copper); }
+.rev { color: var(--ink-soft); }
+.buy { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-top: auto; }
+.price { font-family: var(--f-display); font-weight: 600; font-size: 1.25rem; font-variant-numeric: tabular-nums; }
+.empty { color: var(--ink-soft); font-size: .9375rem; }
+@media (min-width: 560px) {
+  .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .card { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto 1fr; }
+  .tile { aspect-ratio: 16 / 9; width: 100%; }
+  .tile svg { width: 84px; height: 84px; }
+  .grid > .empty { grid-column: 1 / -1; }
+}
+
+/* ---------- shop: cart + checkout ---------- */
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: grid; gap: 14px; min-width: 0; scroll-margin-top: 84px; }
+.rows { display: grid; gap: 12px; }
+.rows:empty { display: none; }
+.row { display: grid; gap: 8px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+.row-top, .row-bot { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.row-name { font-weight: 600; min-width: 0; }
+.x { width: 36px; height: 36px; flex: none; border-radius: 8px; border: 1px solid var(--line); background: transparent; font-size: 1.125rem; line-height: 1; }
+.stepper { display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: 8px; }
+.stepper button { width: 40px; height: 40px; border: 0; background: transparent; font-size: 1.125rem; border-radius: 8px; }
+.qty { min-width: 36px; text-align: center; font-variant-numeric: tabular-nums; font-weight: 600; }
+.row-price { display: grid; justify-items: end; font-variant-numeric: tabular-nums; }
+.unit { font-size: .8125rem; color: var(--ink-soft); }
+.kupon-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+.totals { display: grid; gap: 8px; font-variant-numeric: tabular-nums; }
+.t-row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.t-row dt { color: var(--ink-soft); }
+.t-row.grand { border-top: 1px solid var(--line); padding-top: 10px; font-weight: 600; }
+.t-row.grand dt { color: var(--ink); }
+.t-row.grand dd { font-family: var(--f-display); font-size: 1.375rem; }
+.code { font-family: var(--f-mono); font-size: .8125rem; }
+.pct { color: var(--ink-soft); font-size: .8125rem; }
+.link { border: 0; background: none; padding: 0; color: var(--brand); text-decoration: underline; font-size: .8125rem; }
+.shipnote { font-size: .8125rem; color: var(--ink-soft); }
+.shipnote:empty { display: none; }
+.checkout form { display: grid; gap: 12px; }
+.eta { font-size: .9375rem; }
+.fine { font-size: .75rem; color: var(--ink-soft); }
+.success { display: grid; gap: 10px; justify-items: start; }
+.success h3 { font-family: var(--f-display); font-size: 1.375rem; font-weight: 600; line-height: 1.2; overflow-wrap: anywhere; }
+.success p { overflow-wrap: anywhere; }
+.foot { margin-top: 40px; border-top: 1px solid var(--line); }
+.foot-in { padding-block: 20px; font-size: .8125rem; color: var(--ink-soft); display: grid; gap: 4px; }
+
+/* ---------- game layer ---------- */
+#layer { position: fixed; inset: 0; z-index: 50; cursor: crosshair; background: transparent; box-shadow: inset 0 0 0 5px var(--tool); }
+.tool { position: fixed; inset: auto 0 0; z-index: 70; display: grid; align-items: center; background: var(--tool); color: var(--tool-ink); font-family: var(--f-mono); font-size: .8125rem; border-top: 2px solid var(--tool-ink); padding-bottom: env(safe-area-inset-bottom, 0px); }
+.tool-in { width: 100%; max-width: 1120px; margin-inline: auto; padding-block: 8px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.tool-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; }
+.t-stats { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 14px; font-variant-numeric: tabular-nums; }
+.t-stats b { font-weight: 600; }
+.t-actions { display: flex; gap: 8px; }
+.t-btn { min-height: 40px; padding: 6px 12px; border: 2px solid var(--tool-ink); background: transparent; color: var(--tool-ink); border-radius: 6px; font-family: var(--f-mono); font-weight: 600; font-size: .8125rem; white-space: nowrap; }
+.t-btn.primary { background: var(--tool-ink); color: var(--tool); }
+.t-btn:focus-visible, .sheet :focus-visible { outline-color: var(--tool-ink); }
+.t-log { display: inline-flex; align-items: center; gap: 6px; }
+.t-log svg { width: 18px; height: 18px; display: block; }
+.t-prompt { font-weight: 600; }
+
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(var(--tool-h, 110px) + env(safe-area-inset-bottom, 0px) + 10px); z-index: 60; width: min(520px, calc(100% - 32px)); background: var(--tool-ink); color: var(--tool-paper); border-radius: 8px; padding: 12px 14px; display: grid; gap: 2px; font-size: .9375rem; box-shadow: 0 8px 24px rgba(0, 0, 0, .35); }
+.toast-t { font-family: var(--f-mono); font-weight: 600; font-size: .8125rem; }
+.toast.ok .toast-t { color: var(--tool); }
+.toast.bad .toast-t { color: var(--tool-bad); }
+.toast-b:empty { display: none; }
+
+.mark { position: fixed; z-index: 80; width: 44px; height: 44px; margin: -22px 0 0 -22px; border-radius: 50%; border: 4px solid var(--ok); pointer-events: none; animation: pop .8s ease-out forwards; }
+.mark.bad { border-color: var(--err); }
+@keyframes pop { from { transform: scale(.3); opacity: 1; } to { transform: scale(1.5); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .mark { animation-duration: .01s; } }
+
+.modal { position: fixed; inset: 0; z-index: 100; background: var(--scrim); display: grid; place-items: center; padding: 16px; overflow-y: auto; }
+.sheet { width: min(560px, 100%); background: var(--tool); color: var(--tool-ink); border: 2px solid var(--tool-ink); border-radius: 10px; padding: 20px; display: grid; gap: 14px; box-shadow: 6px 6px 0 var(--tool-ink); }
+.sheet h2 { font-family: var(--f-display); font-weight: 800; font-size: 1.75rem; line-height: 1.05; letter-spacing: -.02em; text-wrap: balance; }
+.kicker { font-family: var(--f-mono); font-size: .75rem; font-weight: 600; letter-spacing: .1em; }
+.steps { padding-left: 1.3em; display: grid; gap: 6px; }
+.small { font-size: .875rem; }
+.sheet-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.score { font-family: var(--f-display); font-weight: 800; font-size: clamp(3.5rem, 18vw, 5.5rem); line-height: .9; letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
+.rank { font-family: var(--f-display); font-weight: 600; font-size: 1.375rem; line-height: 1.2; }
+.stats { font-family: var(--f-mono); font-size: .8125rem; }
+.sheet textarea { width: 100%; resize: none; border: 2px solid var(--tool-ink); border-radius: 6px; background: var(--tool-paper); color: var(--tool-ink); padding: 10px; font-size: .9375rem; line-height: 1.4; }
+.log { max-height: min(56vh, 520px); overflow-y: auto; border-top: 1px solid var(--tool-line); padding-right: 12px; }
+.log li { display: grid; grid-template-columns: 2em minmax(0, 1fr); gap: 8px; padding: 10px 0; border-bottom: 1px solid var(--tool-line); }
+.log .n { font-family: var(--f-mono); font-weight: 600; }
+.log .t { font-weight: 600; line-height: 1.3; }
+.log .d { font-size: .875rem; }
+.log li.miss .t { font-weight: 500; }
+.chip { display: inline-block; font-family: var(--f-mono); font-size: .6875rem; line-height: 1.5; border: 1.5px solid var(--tool-ink); border-radius: 4px; padding: 0 6px; margin: 2px 6px 0 0; }
+</style>
+</head>
+<body>
+<div class="shop" id="shop">
+  <header class="hdr">
+    <div class="wrap hdr-in">
+      <div class="brand">
+        <span class="brand-name">Bugsız Kahve</span>
+        <span class="brand-tag">%100 hatasız alışveriş</span>
+      </div>
+      <button type="button" class="cartbtn" id="cartbtn" data-zone="badge" aria-label="Sepete git">Sepet <span class="pill" id="badge">0</span></button>
+    </div>
+  </header>
+  <div class="promo">
+    <div class="wrap promo-in">
+      <span data-zone="promo-ship">500 TL ve üzeri siparişlerde kargo ücretsiz</span>
+      <span data-zone="promo-coupon">İlk siparişine özel: <b>KAHVE10</b> koduyla %10 indirim</span>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <section class="hero">
+      <h1>Sıfır hata, bol köpük.</h1>
+      <p>Taze kavrulmuş kahveler ve demleme ekipmanları. Sitemizde tek bir bug bile yok. Kendi testçimiz öyle söylüyor.</p>
+    </section>
+
+    <main class="cols">
+      <section class="products" aria-labelledby="h-urun">
+        <h2 id="h-urun">Ürünler</h2>
+        <div class="filters">
+          <div data-zone="search">
+            <label for="ara">Ürün ara</label>
+            <input id="ara" type="search" placeholder="Örn. filtre" autocomplete="off" autocapitalize="none" spellcheck="false">
+          </div>
+          <div data-zone="sort">
+            <label for="sirala">Sırala</label>
+            <select id="sirala">
+              <option value="onerilen">Önerilen</option>
+              <option value="artan">Fiyat: artan</option>
+              <option value="azalan">Fiyat: azalan</option>
+              <option value="isim">İsim: A-Z</option>
+            </select>
+          </div>
+        </div>
+        <p class="count" id="count" data-zone="search"></p>
+        <div class="grid" id="grid" data-zone="grid"></div>
+      </section>
+
+      <div class="side">
+        <section class="panel" id="sepet" aria-labelledby="h-sepet">
+          <h2 id="h-sepet">Sepetim</h2>
+          <p class="empty" id="cart-empty">Sepetin boş. Bir kahve seç, başlayalım.</p>
+          <ul class="rows" id="rows"></ul>
+          <form id="kupon-form" data-zone="coupon" novalidate>
+            <label for="kupon">Kupon kodu</label>
+            <div class="kupon-row">
+              <input id="kupon" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false">
+              <button type="submit" class="btn ghost">Uygula</button>
+            </div>
+            <p class="msg" id="kupon-msg" role="status"></p>
+          </form>
+          <dl class="totals" id="totals"></dl>
+          <p class="shipnote" id="shipnote" data-zone="shipping"></p>
+        </section>
+
+        <section class="panel checkout" aria-labelledby="h-teslim">
+          <h2 id="h-teslim">Teslimat bilgileri</h2>
+          <form id="siparis" novalidate>
+            <div data-zone="field:ad">
+              <label for="ad">Ad Soyad <span class="req">*</span></label>
+              <input id="ad" type="text" autocomplete="off">
+              <p class="msg" id="ad-msg"></p>
+            </div>
+            <div data-zone="field:eposta">
+              <label for="eposta">E-posta <span class="req">*</span></label>
+              <input id="eposta" type="text" inputmode="email" autocomplete="off" autocapitalize="none" spellcheck="false">
+              <p class="msg" id="eposta-msg" role="status"></p>
+            </div>
+            <div data-zone="field:sehir">
+              <label for="sehir">Şehir <span class="req">*</span></label>
+              <select id="sehir">
+                <option value="">Seç</option>
+                <option>İstanbul</option>
+                <option>Ankara</option>
+                <option>İzmir</option>
+                <option>Bursa</option>
+                <option>Antalya</option>
+                <option>Diğer</option>
+              </select>
+              <p class="msg" id="sehir-msg" role="status"></p>
+            </div>
+            <p class="eta" data-zone="date">Tahmini teslimat tarihi: <b>30 Şubat</b></p>
+            <button type="submit" class="btn primary wide">Siparişi tamamla</button>
+            <p class="fine" data-neutral>Bu bir oyun. Yazdıkların hiçbir yere gönderilmez.</p>
+          </form>
+          <div class="success" id="success" data-zone="success" hidden>
+            <h3 id="ok-greet" data-zone="success-greeting"></h3>
+            <p>Siparişin alındı. Sipariş numaran <b id="ok-no"></b>.</p>
+            <p id="ok-sum" data-zone="success-summary"></p>
+            <p id="ok-mail" data-zone="success-email"></p>
+            <p class="eta" data-zone="date">Tahmini teslimat tarihi: <b>30 Şubat</b></p>
+            <button type="button" class="btn ghost" id="ok-back">Alışverişe dön</button>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <footer class="foot">
+    <div class="wrap foot-in" data-neutral>
+      <span>© <span id="yil">2026</span> Bugsız Kahve</span>
+      <span>Gerçek bir dükkân değildir. Test becerini denemen için hazırlanmış bir oyundur.</span>
+    </div>
+  </footer>
+</div>
+
+<div id="layer" hidden></div>
+
+<div class="toast" id="toast" role="status" aria-live="polite" hidden>
+  <span class="toast-t" id="toast-t"></span>
+  <span class="toast-b" id="toast-b"></span>
+</div>
+
+<div class="tool" id="tool" role="region" aria-label="Bug Avı oyun çubuğu">
+  <div class="tool-in">
+    <div class="tool-row" id="tool-main">
+      <div class="t-stats">
+        <button type="button" class="t-btn t-log" id="btn-log" aria-label="Av defterini aç">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><ellipse cx="12" cy="14" rx="5" ry="6.5" fill="currentColor"/><circle cx="12" cy="6" r="2.6" fill="currentColor"/><path d="M7 11 3 9M7 15H2.5M7.5 18.5 4 21M17 11l4-2M17 15h4.5M16.5 18.5 20 21" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          <span><b id="t-found">0</b>/15</span>
+        </button>
+        <span>Yanlış alarm <b id="t-alarm">0</b></span>
+        <span id="t-time">00:00</span>
+      </div>
+      <div class="t-actions">
+        <button type="button" class="t-btn" id="btn-hint">İpucu</button>
+        <button type="button" class="t-btn primary" id="btn-report">Bug bildir</button>
+        <button type="button" class="t-btn" id="btn-finish">Bitir</button>
+      </div>
+    </div>
+    <div class="tool-row" id="tool-report" hidden>
+      <span class="t-prompt">Hatanın göründüğü yere dokun</span>
+      <button type="button" class="t-btn" id="btn-cancel">Vazgeç</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="m-intro" role="dialog" aria-modal="true" aria-labelledby="mi-h">
+  <div class="sheet">
+    <span class="kicker">BUG AVI</span>
+    <h2 id="mi-h">Bu dükkânda 15 bug saklı</h2>
+    <p>Bugsız Kahve hatasız olduğunu iddia ediyor. Bir test uzmanı gibi gez: ürün ara, sırala, sepete ekle, kupon dene, sipariş ver. Sınır değerleri ve boş alanları unutma.</p>
+    <ol class="steps">
+      <li>Bir hata fark edince alttaki <b>Bug bildir</b> düğmesine bas.</li>
+      <li>Hatanın göründüğü yere dokun.</li>
+      <li>Doğruysa av defterine yazılır. Değilse yanlış alarm sayılır.</li>
+    </ol>
+    <p class="small">Sarı çubuk ve bu pencereler oyuna ait, onlarda bug yok. Yazdıkların tarayıcından çıkmaz.</p>
+    <div class="sheet-actions">
+      <button type="button" class="t-btn primary" id="btn-start" data-focus>Ava başla</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="m-log" role="dialog" aria-modal="true" aria-labelledby="ml-h" hidden>
+  <div class="sheet">
+    <span class="kicker">AV DEFTERİ</span>
+    <h2 id="ml-h"></h2>
+    <p class="small" id="ml-note" hidden>Cevap anahtarı açık. Bulunmayanlar da görünüyor.</p>
+    <ul class="log" id="log" tabindex="0"></ul>
+    <div class="sheet-actions">
+      <button type="button" class="t-btn primary" data-close="m-log" data-focus>Kapat</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="m-result" role="dialog" aria-modal="true" aria-labelledby="mr-h" hidden>
+  <div class="sheet">
+    <span class="kicker" id="mr-h">AV RAPORU</span>
+    <div class="score" id="r-score">0 / 15</div>
+    <p class="rank" id="r-rank"></p>
+    <p class="stats" id="r-stats"></p>
+    <label for="r-text" class="small" style="color:inherit;margin:0">Yoruma yapıştırmak için:</label>
+    <textarea id="r-text" rows="4" readonly></textarea>
+    <div class="sheet-actions">
+      <button type="button" class="t-btn primary" id="btn-copy" data-focus>Sonucu kopyala</button>
+      <button type="button" class="t-btn" id="r-continue" data-close="m-result">Aramaya devam et</button>
+      <button type="button" class="t-btn" id="btn-reset">Baştan başla</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  'use strict';
+  document.documentElement.lang = 'tr';
+
+  const $ = (s, r = document) => r.querySelector(s);
+  const nf = new Intl.NumberFormat('tr-TR');
+  const money = n => nf.format(n || 0) + ' TL';
+  const pad = n => String(n).padStart(2, '0');
+  const clock = s => pad(Math.floor(s / 60)) + ':' + pad(s % 60);
+  const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  /* ================= shop ================= */
+  const svg = inner => `<svg viewBox="0 0 64 64" aria-hidden="true" focusable="false">${inner}</svg>`;
+  const ART = {
+    turk: svg('<path d="M18 26h22l-3 24H21z" fill="var(--copper)"/><path d="M16 26h26M40 30l16-8" fill="none" stroke="var(--ink)" stroke-width="3" stroke-linecap="round"/><path d="M25 19c0-3 3-3 3-6M32 19c0-3 3-3 3-6" fill="none" stroke="var(--ink-soft)" stroke-width="2" stroke-linecap="round"/>'),
+    filtre: svg('<path d="M20 18h24v34H20z" fill="var(--brand)"/><path d="M20 18l4-6h16l4 6z" fill="var(--ink)"/><rect x="26" y="30" width="12" height="10" rx="1" fill="var(--surface)"/>'),
+    espresso: svg('<path d="M16 16h32v38H16z" fill="var(--ink)"/><path d="M16 16l5-6h22l5 6z" fill="var(--copper)"/><ellipse cx="32" cy="36" rx="7" ry="9" fill="var(--copper)"/><path d="M32 28c-3 5 3 11 0 16" fill="none" stroke="var(--ink)" stroke-width="2"/>'),
+    press: svg('<rect x="20" y="20" width="20" height="32" rx="2" fill="var(--surface)" stroke="var(--ink)" stroke-width="3"/><rect x="21.5" y="34" width="17" height="16.5" fill="var(--copper)"/><path d="M30 20V11" fill="none" stroke="var(--ink)" stroke-width="3" stroke-linecap="round"/><circle cx="30" cy="9" r="3" fill="var(--ink)"/><path d="M40 26h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6" fill="none" stroke="var(--ink)" stroke-width="3"/>'),
+    degirmen: svg('<rect x="20" y="30" width="24" height="22" rx="2" fill="var(--brand)"/><path d="M22 30l4-10h12l4 10z" fill="var(--ink)"/><path d="M32 20v-6h12" fill="none" stroke="var(--ink)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="46" cy="14" r="3" fill="var(--copper)"/><rect x="26" y="40" width="12" height="6" rx="1" fill="var(--surface)"/>'),
+    kasik: svg('<ellipse cx="22" cy="42" rx="9" ry="7" transform="rotate(-35 22 42)" fill="var(--copper)"/><path d="M28 36l22-18" fill="none" stroke="var(--ink)" stroke-width="4" stroke-linecap="round"/>')
+  };
+
+  const PRODUCTS = [
+    { id: 'turk', title: 'Türk Kahvesi 250 g', desc: 'Orta kavrum, taş değirmende çekildi. Cezvede bol köpük verir.', price: 180, cartPrice: 180, rating: '4,8', reviews: 214 },
+    { id: 'filtre', title: 'Filtre Kahve 250 g', desc: 'Etiyopya Yirgacheffe, açık kavrum. Narenciye ve yasemin notaları.', price: 320, cartPrice: 320, rating: '4,6', reviews: 132 },
+    { id: 'espresso', title: 'Espresso Blend 1 kg', desc: 'Brezilya ve Kolombiya harmanı. Fındıksı, dolgun gövdeli.', price: 890, cartPrice: 899, rating: '4,7', reviews: 98 },
+    { id: 'press', title: 'French Press 600 ml', desc: 'Borosilikat cam gövde, paslanmaz çelik filtre. 350 ml hazneli, iki fincanlık.', price: 540, cartPrice: 540, rating: '4,5', reviews: 76 },
+    { id: 'degirmen', title: 'El Değirmeni', desc: 'Seramik öğütücü, 12 kademeli ayar. İnce çekimden kalın çekime.', price: 1250, cartPrice: 1250, rating: '5,7', reviews: 41, stock: 3 },
+    { id: 'kasik', title: 'Ölçü Kaşığı', desc: 'Paslanmaz çelik, 7 gramlık. Her fincana aynı ölçü.', price: 95, cartPrice: 95, rating: '4,9', reviews: 310, addLabel: 'Sepete elke' }
+  ];
+  const P = Object.fromEntries(PRODUCTS.map(p => [p.id, p]));
+
+  const shop = { query: '', sort: 'onerilen', cart: [], badge: 0, coupon: 0, lastAttempt: null, order: null };
+
+  const grid = $('#grid'), rowsEl = $('#rows'), form = $('#siparis'), success = $('#success');
+
+  function visibleProducts() {
+    const q = shop.query.trim();
+    let list = PRODUCTS.filter(p => !q || p.title.includes(q));
+    if (shop.sort === 'artan') list = [...list].sort((a, b) => (String(a.price) < String(b.price) ? -1 : 1));
+    if (shop.sort === 'azalan') list = [...list].sort((a, b) => (String(a.price) > String(b.price) ? -1 : 1));
+    if (shop.sort === 'isim') list = [...list].sort((a, b) => a.title.localeCompare(b.title, 'tr'));
+    return list;
+  }
+
+  function cardHTML(p) {
+    return `<article class="card">
+      <div class="tile">${ART[p.id]}${p.stock ? `<span class="stock" data-zone="stock:${p.id}">Son ${p.stock} ürün</span>` : ''}</div>
+      <div class="card-body">
+        <div class="info" data-zone="info:${p.id}"><h3>${p.title}</h3><p>${p.desc}</p></div>
+        <p class="rating" data-zone="rating:${p.id}"><span class="star" aria-hidden="true">★</span> ${p.rating} / 5 <span class="rev">· ${p.reviews} değerlendirme</span></p>
+        <div class="buy">
+          <span class="price" data-zone="cardprice:${p.id}">${money(p.price)}</span>
+          <button type="button" class="btn primary" data-add="${p.id}" data-zone="add:${p.id}">${p.addLabel || 'Sepete ekle'}</button>
+        </div>
+      </div>
+    </article>`;
+  }
+
+  function renderProducts() {
+    const list = visibleProducts();
+    grid.innerHTML = list.map(cardHTML).join('');
+    $('#count').textContent = list.length ? list.length + ' ürün gösteriliyor' : '';
+    if (!list.length) {
+      const p = document.createElement('p');
+      p.className = 'empty';
+      p.dataset.zone = 'search';
+      p.textContent = '“' + shop.query.trim() + '” için ürün bulunamadı.';
+      grid.appendChild(p);
+    }
+  }
+
+  function totals() {
+    const sub = shop.cart.reduce((s, r) => s + P[r.id].cartPrice * r.qty, 0);
+    const count = shop.cart.reduce((s, r) => s + r.qty, 0);
+    const rate = shop.coupon * 10;
+    const disc = Math.round(sub * rate / 100);
+    const ship = shop.cart.length === 0 ? 0 : (sub > 500 ? 0 : 49);
+    return { sub, count, rate, disc, ship, total: sub - disc + ship };
+  }
+
+  function renderCart() {
+    const t = totals();
+    const has = shop.cart.length > 0;
+    $('#cart-empty').hidden = has;
+    rowsEl.innerHTML = shop.cart.map(r => {
+      const p = P[r.id];
+      return `<li class="row" data-zone="row:${r.id}">
+        <div class="row-top">
+          <span class="row-name">${p.title}</span>
+          <button type="button" class="x" data-act="del" data-id="${r.id}" aria-label="${p.title} ürününü sepetten çıkar">×</button>
+        </div>
+        <div class="row-bot">
+          <div class="stepper" data-zone="rowqty:${r.id}">
+            <button type="button" data-act="dec" data-id="${r.id}" aria-label="Adedi azalt">−</button>
+            <span class="qty">${r.qty}</span>
+            <button type="button" data-act="inc" data-id="${r.id}" aria-label="Adedi artır">+</button>
+          </div>
+          <span class="row-price" data-zone="rowprice:${r.id}"><span class="unit">${money(p.cartPrice)} × ${r.qty}</span><b>${money(p.cartPrice * r.qty)}</b></span>
+        </div>
+      </li>`;
+    }).join('');
+    $('#totals').innerHTML =
+      `<div class="t-row" data-zone="total"><dt>Ara toplam</dt><dd>${money(t.sub)}</dd></div>` +
+      (shop.coupon ? `<div class="t-row" data-zone="discount"><dt>İndirim <span class="code">KAHVE10${shop.coupon > 1 ? ' ×' + shop.coupon : ''}</span> <button type="button" class="link" id="kupon-sil">Kaldır</button></dt><dd>${money(-t.disc)} <span class="pct">(%${t.rate})</span></dd></div>` : '') +
+      `<div class="t-row" data-zone="shipping"><dt>Kargo</dt><dd>${!has ? '—' : t.ship ? money(t.ship) : 'Ücretsiz'}</dd></div>` +
+      `<div class="t-row grand" data-zone="total"><dt>Toplam</dt><dd>${money(t.total)}</dd></div>`;
+    $('#shipnote').textContent = !has ? '' : t.ship ? 'Ücretsiz kargoya ' + money(500 - t.sub) + ' kaldı.' : 'Bu siparişte kargo bizden.';
+    $('#badge').textContent = shop.badge;
+  }
+
+  function addToCart(id) {
+    const row = shop.cart.find(r => r.id === id);
+    if (row) row.qty += 1; else shop.cart.push({ id, qty: 1 });
+    shop.badge += 1;
+    renderCart();
+  }
+
+  grid.addEventListener('click', e => {
+    const b = e.target.closest('[data-add]');
+    if (!b) return;
+    addToCart(b.dataset.add);
+    if (b.dataset.busy) return;
+    const old = b.textContent;
+    b.dataset.busy = '1';
+    b.textContent = 'Eklendi';
+    setTimeout(() => { b.textContent = old; delete b.dataset.busy; }, 800);
+  });
+
+  rowsEl.addEventListener('click', e => {
+    const b = e.target.closest('[data-act]');
+    if (!b) return;
+    const i = shop.cart.findIndex(r => r.id === b.dataset.id);
+    if (i < 0) return;
+    if (b.dataset.act === 'inc') { shop.cart[i].qty += 1; shop.badge += 1; }
+    if (b.dataset.act === 'dec') { shop.cart[i].qty -= 1; shop.badge -= 1; }
+    if (b.dataset.act === 'del') { shop.cart.splice(i, 1); }
+    renderCart();
+    const again = rowsEl.querySelector(`[data-act="${b.dataset.act}"][data-id="${b.dataset.id}"]`);
+    if (again) again.focus();
+  });
+
+  $('#totals').addEventListener('click', e => {
+    if (e.target.id !== 'kupon-sil') return;
+    shop.coupon = 0;
+    setMsg('kupon', 'Kupon kaldırıldı.', 'ok');
+    renderCart();
+  });
+
+  function setMsg(id, text, kind) {
+    const el = $('#' + id + '-msg');
+    el.textContent = text || '';
+    el.className = 'msg' + (kind ? ' ' + kind : '');
+  }
+
+  $('#kupon-form').addEventListener('submit', e => {
+    e.preventDefault();
+    const code = $('#kupon').value.trim().toUpperCase();
+    if (!code) return setMsg('kupon', 'Bir kupon kodu yaz.', 'err');
+    if (code !== 'KAHVE10') return setMsg('kupon', 'Bu kupon kodu geçerli değil.', 'err');
+    shop.coupon += 1;
+    setMsg('kupon', 'Kupon uygulandı: %10 indirim.', 'ok');
+    renderCart();
+  });
+
+  $('#ara').addEventListener('input', e => { shop.query = e.target.value; renderProducts(); });
+  $('#sirala').addEventListener('change', e => { shop.sort = e.target.value; renderProducts(); });
+  $('#cartbtn').addEventListener('click', () => {
+    const calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    $('#sepet').scrollIntoView({ behavior: calm ? 'auto' : 'smooth', block: 'start' });
+  });
+
+  $('#eposta').addEventListener('input', e => {
+    setMsg('eposta', e.target.value.trim() ? '✓ E-posta adresi geçerli' : '', 'ok');
+  });
+  $('#sehir').addEventListener('change', () => setMsg('sehir', ''));
+
+  form.addEventListener('submit', e => {
+    e.preventDefault();
+    const name = $('#ad').value.trim();
+    const email = $('#eposta').value.trim();
+    const city = $('#sehir').value;
+    shop.lastAttempt = { nameEmpty: !name };
+    let blocked = false;
+    if (!email) { setMsg('eposta', 'E-posta adresini yaz.', 'err'); blocked = true; }
+    if (!city) { setMsg('sehir', 'Teslimat şehrini seç.', 'err'); blocked = true; } else setMsg('sehir', '');
+    if (blocked) return;
+
+    const t = totals();
+    shop.order = { nameEmpty: !name, emailInvalid: !EMAIL_RE.test(email), rows: shop.cart.length };
+    $('#ok-greet').textContent = `Teşekkürler ${name || undefined}!`;
+    $('#ok-no').textContent = 'BK-' + (10000 + Math.floor(Math.random() * 90000));
+    $('#ok-sum').textContent = `${t.count} ürün · ${money(t.total)} · ${city}`;
+    $('#ok-mail').textContent = `Sipariş özeti ${email} adresine gönderilecek.`;
+    shop.cart = []; shop.badge = 0; shop.coupon = 0;
+    setMsg('kupon', ''); $('#kupon').value = '';
+    renderCart();
+    form.hidden = true;
+    success.hidden = false;
+    $('#ok-back').focus();
+  });
+
+  function resetForm() {
+    form.reset();
+    ['ad', 'eposta', 'sehir'].forEach(id => setMsg(id, ''));
+    shop.order = null; shop.lastAttempt = null;
+    success.hidden = true;
+    form.hidden = false;
+  }
+  $('#ok-back').addEventListener('click', resetForm);
+  $('#yil').textContent = new Date().getFullYear();
+
+  /* ================= planted bugs ================= */
+  const yes = () => true;
+  const rowQty = id => { const r = shop.cart.find(x => x.id === id); return r ? r.qty : null; };
+  const lowQty = id => { const q = rowQty(id); return q !== null && q < 1; };
+  const anyLow = () => shop.cart.some(r => r.qty < 1);
+  const overStock = () => (rowQty('degirmen') || 0) > P.degirmen.stock;
+  const manyCoupons = () => shop.coupon >= 2;
+  const shipEdge = () => shop.cart.length > 0 && totals().sub === 500;
+  const sortArmed = () => shop.sort === 'artan' || shop.sort === 'azalan';
+  const searchArmed = () => {
+    const q = shop.query.trim();
+    if (!q) return false;
+    const tr = s => s.toLocaleLowerCase('tr-TR'), en = s => s.toLowerCase();
+    const strict = PRODUCTS.filter(p => p.title.includes(q)).length;
+    const loose = PRODUCTS.filter(p => tr(p.title).includes(tr(q)) || en(p.title).includes(en(q))).length;
+    return loose > strict;
+  };
+  const formOpen = () => !form.hidden;
+  const orderOpen = () => !!shop.order && !success.hidden;
+  const emailBad = () => { const v = $('#eposta').value.trim(); return formOpen() && v !== '' && !EMAIL_RE.test(v); };
+  const nameSkipped = () => formOpen() && !!shop.lastAttempt && shop.lastAttempt.nameEmpty && !$('#ad').value.trim();
+  const orderNoName = () => orderOpen() && shop.order.nameEmpty;
+  const orderBadMail = () => orderOpen() && shop.order.emailInvalid;
+  const orderEmpty = () => orderOpen() && shop.order.rows === 0;
+
+  const BUGS = [
+    { id: 'typo', area: 'Ürünler', level: 'Kolay', title: 'Yazım hatası: “Sepete elke”',
+      note: 'Ölçü Kaşığı’nın düğmesinde “ekle” yerine “elke” yazıyor.',
+      hint: 'Düğmelerin üzerindeki yazıları tek tek oku.',
+      zones: { 'add:kasik': yes } },
+    { id: 'rating', area: 'Ürünler', level: 'Kolay', title: 'İmkânsız puan: 5,7 / 5',
+      note: 'El Değirmeni’nin puanı 5 üzerinden 5,7 görünüyor.',
+      hint: 'Puanlar 5 üzerinden veriliyor. Hepsi bu sınırın içinde mi?',
+      zones: { 'rating:degirmen': yes } },
+    { id: 'ml', area: 'Ürünler', level: 'Orta', title: 'Tutarsız ürün bilgisi',
+      note: 'French Press başlıkta 600 ml, açıklamada 350 ml.',
+      hint: 'Bir ürünün başlığı ile açıklaması aynı şeyi söylemiyor.',
+      zones: { 'info:press': yes } },
+    { id: 'search', area: 'Ürünler', level: 'Orta', title: 'Arama büyük/küçük harfe duyarlı',
+      note: '“kahve” yazınca sonuç çıkmıyor, “Kahve” yazınca çıkıyor.',
+      hint: 'Aramayı küçük harflerle dene.',
+      zones: { 'search': searchArmed, 'grid': searchArmed } },
+    { id: 'sort', area: 'Ürünler', level: 'Orta', title: 'Fiyat sıralaması yanlış',
+      note: 'Fiyatlar sayı gibi değil metin gibi sıralanıyor: 1.250 TL, 180 TL’den önce geliyor.',
+      hint: 'Fiyata göre sırala ve en ucuz ürünün nerede olduğuna bak.',
+      zones: { 'sort': sortArmed, 'grid': sortArmed } },
+    { id: 'qty', area: 'Sepet', level: 'Kolay', title: 'Adet 1’in altına iniyor',
+      note: 'Eksi düğmesi 1’de durmuyor. Adet sıfıra ve eksiye, tutar da eksiye düşüyor.',
+      hint: 'Sepette eksi düğmesine gereğinden fazla bas.',
+      zones: { 'rowqty:*': lowQty, 'rowprice:*': lowQty, 'row:*': lowQty, 'total': anyLow, 'badge': () => anyLow() && shop.badge < 1 } },
+    { id: 'price', area: 'Sepet', level: 'Orta', title: 'Fiyat tutarsızlığı',
+      note: 'Espresso Blend ürün kartında 890 TL, sepette 899 TL.',
+      hint: 'Sepetteki birim fiyatları ürün kartlarıyla karşılaştır.',
+      zones: { 'rowprice:espresso': yes, 'cardprice:espresso': () => rowQty('espresso') !== null } },
+    { id: 'coupon', area: 'Sepet', level: 'Orta', title: 'Kupon tekrar tekrar uygulanıyor',
+      note: 'KAHVE10 her basışta %10 daha indirim ekliyor.',
+      hint: 'Kuponu bir kez uyguladın. Peki ya bir daha?',
+      zones: { 'coupon': manyCoupons, 'discount': manyCoupons, 'total': manyCoupons, 'promo-coupon': manyCoupons } },
+    { id: 'shipping', area: 'Sepet', level: 'Zor', title: 'Kargo sınır değeri hatası',
+      note: 'Ara toplam tam 500 TL iken kargo hâlâ ücretli. “500 TL ve üzeri” koşulu “500’den büyük” diye kodlanmış.',
+      hint: 'Ara toplamı tam 500 TL yap.',
+      zones: { 'shipping': shipEdge, 'total': shipEdge, 'promo-ship': shipEdge } },
+    { id: 'stock', area: 'Sepet', level: 'Orta', title: 'Stok sınırı aşılabiliyor',
+      note: '“Son 3 ürün” yazan El Değirmeni’nden 4 ve üzeri adet sepete eklenebiliyor.',
+      hint: 'Stokta kaç tane kaldığı yazan üründen daha fazlasını almayı dene.',
+      zones: { 'rowqty:degirmen': overStock, 'row:degirmen': overStock, 'stock:degirmen': overStock } },
+    { id: 'badge', area: 'Sepet', level: 'Orta', title: 'Sepet rozeti güncellenmiyor',
+      note: 'Ürünü sepetten çıkarınca üstteki sepet sayısı azalmıyor.',
+      hint: 'Sepetten bir ürünü çıkar, sonra sayfanın en üstüne bak.',
+      zones: { 'badge': () => shop.badge !== totals().count } },
+    { id: 'email', area: 'Sipariş', level: 'Kolay', title: 'Geçersiz e-posta kabul ediliyor',
+      note: 'İçinde @ olmayan bir metin bile geçerli sayılıyor.',
+      hint: 'E-posta alanına e-posta olmayan bir şey yaz.',
+      zones: { 'field:eposta': emailBad, 'success-email': orderBadMail, 'success': orderBadMail } },
+    { id: 'name', area: 'Sipariş', level: 'Orta', title: 'Zorunlu alan kontrol edilmiyor',
+      note: 'Ad Soyad boşken sipariş tamamlanıyor ve “Teşekkürler undefined!” çıkıyor.',
+      hint: 'Yıldızlı alanlardan birini boş bırakıp siparişi tamamla.',
+      zones: { 'field:ad': nameSkipped, 'success-greeting': orderNoName, 'success': orderNoName } },
+    { id: 'emptycart', area: 'Sipariş', level: 'Zor', title: 'Boş sepetle sipariş verilebiliyor',
+      note: 'Sepette ürün yokken sipariş tamamlanıyor: 0 ürün, 0 TL.',
+      hint: 'Sipariş vermek için sepette ürün olması gerekmez mi?',
+      zones: { 'success-summary': orderEmpty, 'success': orderEmpty } },
+    { id: 'date', area: 'Sipariş', level: 'Kolay', title: 'Olmayan tarih: 30 Şubat',
+      note: 'Tahmini teslimat tarihi takvimde yok.',
+      hint: 'Teslimat tarihini takvimde bulmayı dene.',
+      zones: { 'date': yes } }
+  ];
+  const TOTAL = BUGS.length;
+
+  /* ================= game ================= */
+  const KEY = 'bugavi.v1';
+  const game = { found: new Set(), hinted: new Set(), alarms: 0, elapsed: 0, started: false, done: false };
+  const ids = new Set(BUGS.map(b => b.id));
+
+  function save() {
+    try {
+      localStorage.setItem(KEY, JSON.stringify({ found: [...game.found], hinted: [...game.hinted], alarms: game.alarms, elapsed: game.elapsed, started: game.started, done: game.done }));
+    } catch (e) { /* storage unavailable: the game still works for this visit */ }
+  }
+  function load() {
+    try {
+      const d = JSON.parse(localStorage.getItem(KEY) || 'null');
+      if (!d || typeof d !== 'object') return;
+      game.found = new Set((d.found || []).filter(x => ids.has(x)));
+      game.hinted = new Set((d.hinted || []).filter(x => ids.has(x)));
+      game.alarms = Number(d.alarms) || 0;
+      game.elapsed = Number(d.elapsed) || 0;
+      game.started = !!d.started;
+      game.done = game.found.size === TOTAL;
+    } catch (e) { /* ignore unreadable progress */ }
+  }
+
+  const layer = $('#layer'), tool = $('#tool'), toastEl = $('#toast');
+  const shopEl = $('#shop');
+  const modalOpen = () => !!document.querySelector('.modal:not([hidden])');
+
+  function hud() {
+    $('#t-found').textContent = game.found.size;
+    $('#t-alarm').textContent = game.alarms;
+    $('#t-time').textContent = clock(game.elapsed);
+  }
+
+  let toastTimer = 0;
+  function toast(kind, title, body, ms) {
+    toastEl.className = 'toast ' + kind;
+    $('#toast-t').textContent = title;
+    $('#toast-b').textContent = body || '';
+    toastEl.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { toastEl.hidden = true; }, ms || 6500);
+  }
+
+  function mark(x, y, ok) {
+    const m = document.createElement('span');
+    m.className = 'mark' + (ok ? '' : ' bad');
+    m.style.left = x + 'px';
+    m.style.top = y + 'px';
+    document.body.appendChild(m);
+    setTimeout(() => m.remove(), 900);
+  }
+
+  let reporting = false;
+  function setReporting(on) {
+    reporting = on;
+    /* Keep the bar's height while its content swaps, so the page under the finger does not shift. */
+    tool.style.minHeight = on ? tool.offsetHeight + 'px' : '';
+    layer.hidden = !on;
+    $('#tool-main').hidden = on;
+    $('#tool-report').hidden = !on;
+    if (on) { toastEl.hidden = true; $('#btn-cancel').focus(); } else { $('#btn-report').focus(); }
+  }
+
+  function credit(bug, x, y) {
+    game.found.add(bug.id);
+    if (game.found.size === TOTAL) game.done = true;
+    save(); hud(); mark(x, y, true);
+    toast('ok', `Bug ${game.found.size}/${TOTAL} yakalandı: ${bug.title}`, bug.note);
+    if (game.done) setTimeout(showResult, 1400);
+  }
+
+  function evaluateTap(x, y) {
+    const top = document.elementsFromPoint(x, y)[0];
+    if (!top || !shopEl.contains(top)) return toast('info', 'Dükkânın içinde bir yere dokun', '');
+    if (top.closest('[data-neutral]')) return toast('info', 'Burası oyunun kendi notu', 'Burada bug aranmaz, yanlış alarm sayılmadı.');
+    let already = null;
+    for (let el = top; el && el !== document.body; el = el.parentElement) {
+      const z = el.dataset ? el.dataset.zone : '';
+      if (!z) continue;
+      const [name, arg] = z.split(':');
+      for (const bug of BUGS) {
+        for (const key of Object.keys(bug.zones)) {
+          const [kn, ka] = key.split(':');
+          if (kn !== name) continue;
+          if (ka !== undefined && ka !== '*' && ka !== arg) continue;
+          if (!bug.zones[key](arg)) continue;
+          if (game.found.has(bug.id)) { already = already || bug; continue; }
+          return credit(bug, x, y);
+        }
+      }
+      /* The spot itself is a bug they already have: don't hand out a different one from a wider area. */
+      if (already) break;
+    }
+    if (already) return toast('info', 'Bunu zaten yakaladın', already.title);
+    game.alarms += 1;
+    save(); hud(); mark(x, y, false);
+    toast('bad', 'Yanlış alarm', 'Burada şu an bir bug görünmüyor. Hatanın tam göründüğü yere dokunmayı dene.');
+  }
+
+  layer.addEventListener('click', e => {
+    const x = e.clientX, y = e.clientY;
+    setReporting(false);
+    evaluateTap(x, y);
+  });
+
+  let hintCursor = -1;
+  function giveHint() {
+    const order = ['Kolay', 'Orta', 'Zor'];
+    const open = BUGS.filter(b => !game.found.has(b.id)).sort((a, b) => order.indexOf(a.level) - order.indexOf(b.level));
+    if (!open.length) return toast('info', 'Hepsini yakaladın', 'İpucuna gerek kalmadı.');
+    let pick = open.find(b => !game.hinted.has(b.id));
+    if (!pick) { hintCursor = (hintCursor + 1) % open.length; pick = open[hintCursor]; }
+    game.hinted.add(pick.id);
+    save();
+    toast('info', `İpucu · ${pick.area} · ${pick.level}`, pick.hint, 10000);
+  }
+
+  /* ---- modals ---- */
+  let lastFocus = null;
+  function openModal(id) {
+    lastFocus = document.activeElement;
+    const m = $('#' + id);
+    m.hidden = false;
+    const f = m.querySelector('[data-focus]');
+    if (f) f.focus();
+  }
+  function closeModal(id) {
+    $('#' + id).hidden = true;
+    if (lastFocus && document.contains(lastFocus)) lastFocus.focus();
+  }
+
+  const reveal = () => location.hash === '#cevaplar';
+  function showLog() {
+    const open = reveal();
+    $('#ml-h').textContent = `${game.found.size} / ${TOTAL} bug yakalandı`;
+    $('#ml-note').hidden = !open;
+    const log = $('#log');
+    log.textContent = '';
+    BUGS.forEach((b, i) => {
+      const li = document.createElement('li');
+      const got = game.found.has(b.id);
+      li.className = got ? 'hit' : 'miss';
+      const n = document.createElement('span'); n.className = 'n'; n.textContent = pad(i + 1);
+      const box = document.createElement('div');
+      const t = document.createElement('div'); t.className = 't';
+      t.textContent = got || open ? (got ? '✓ ' : '') + b.title : 'Henüz yakalanmadı';
+      box.appendChild(t);
+      const d = document.createElement('div'); d.className = 'd';
+      if (got || open) d.textContent = b.note;
+      else if (game.hinted.has(b.id)) d.textContent = 'İpucu: ' + b.hint;
+      if (d.textContent) box.appendChild(d);
+      const chips = document.createElement('div');
+      [b.area, b.level].forEach(c => { const s = document.createElement('span'); s.className = 'chip'; s.textContent = c; chips.appendChild(s); });
+      box.appendChild(chips);
+      li.append(n, box);
+      log.appendChild(li);
+    });
+    openModal('m-log');
+  }
+
+  const rank = n => (n >= TOTAL ? 'Efsane Bug Avcısı' : n >= 12 ? 'Bug Avcısı' : n >= 8 ? 'Kıdemli Test Mühendisi' : n >= 4 ? 'Test Uzmanı' : 'Meraklı Kullanıcı');
+  function disarmReset() { const b = $('#btn-reset'); b.textContent = 'Baştan başla'; delete b.dataset.armed; }
+  function showResult() {
+    const n = game.found.size;
+    $('#r-score').textContent = n + ' / ' + TOTAL;
+    $('#r-rank').textContent = rank(n);
+    $('#r-stats').textContent = `Süre ${clock(game.elapsed)} · Yanlış alarm ${game.alarms} · İpucu ${game.hinted.size}`;
+    $('#r-text').value = `Bugsız Kahve Bug Avı: ${TOTAL} bug'dan ${n} tanesini yakaladım 🐞\nSüre ${clock(game.elapsed)}, yanlış alarm ${game.alarms}, ipucu ${game.hinted.size}. Unvanım: ${rank(n)}.\nSen kaç tane bulabilirsin?`;
+    $('#r-continue').hidden = n === TOTAL;
+    $('#btn-copy').textContent = 'Sonucu kopyala';
+    disarmReset();
+    toastEl.hidden = true;
+    openModal('m-result');
+  }
+
+  function copyResult() {
+    const ta = $('#r-text'), btn = $('#btn-copy');
+    const done = () => { btn.textContent = 'Kopyalandı'; };
+    const fallback = () => {
+      ta.focus(); ta.select();
+      let ok = false;
+      try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      btn.textContent = ok ? 'Kopyalandı' : 'Metin seçildi, kopyala';
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(ta.value).then(done, fallback);
+    else fallback();
+  }
+
+  function resetAll() {
+    game.found = new Set(); game.hinted = new Set(); game.alarms = 0; game.elapsed = 0; game.started = false; game.done = false;
+    try { localStorage.removeItem(KEY); } catch (e) { /* nothing stored */ }
+    shop.query = ''; shop.sort = 'onerilen'; shop.cart = []; shop.badge = 0; shop.coupon = 0;
+    $('#ara').value = ''; $('#sirala').value = 'onerilen'; $('#kupon').value = ''; setMsg('kupon', '');
+    resetForm(); renderProducts(); renderCart(); hud();
+    $('#m-result').hidden = true;
+    window.scrollTo(0, 0);
+    openModal('m-intro');
+  }
+
+  $('#btn-start').addEventListener('click', () => { game.started = true; save(); $('#m-intro').hidden = true; $('#btn-report').focus(); });
+  $('#btn-report').addEventListener('click', () => setReporting(true));
+  $('#btn-cancel').addEventListener('click', () => setReporting(false));
+  $('#btn-hint').addEventListener('click', giveHint);
+  $('#btn-log').addEventListener('click', showLog);
+  $('#btn-finish').addEventListener('click', showResult);
+  $('#btn-copy').addEventListener('click', copyResult);
+  $('#btn-reset').addEventListener('click', e => {
+    const b = e.currentTarget;
+    if (!b.dataset.armed) { b.dataset.armed = '1'; b.textContent = 'Emin misin? İlerleme silinir'; return; }
+    resetAll();
+  });
+  document.addEventListener('click', e => {
+    const c = e.target.closest('[data-close]');
+    if (c) return closeModal(c.dataset.close);
+    if (e.target.classList && e.target.classList.contains('modal') && e.target.id !== 'm-intro') closeModal(e.target.id);
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape') return;
+    if (reporting) return setReporting(false);
+    const m = document.querySelector('.modal:not([hidden])');
+    if (m && m.id !== 'm-intro') closeModal(m.id);
+  });
+
+  setInterval(() => {
+    if (!game.started || game.done || modalOpen() || document.visibilityState !== 'visible') return;
+    game.elapsed += 1;
+    $('#t-time').textContent = clock(game.elapsed);
+    if (game.elapsed % 5 === 0) save();
+  }, 1000);
+
+  const setToolH = () => document.documentElement.style.setProperty('--tool-h', tool.offsetHeight + 'px');
+  if ('ResizeObserver' in window) new ResizeObserver(setToolH).observe(tool);
+  window.addEventListener('resize', setToolH);
+
+  load();
+  renderProducts();
+  renderCart();
+  hud();
+  setToolH();
+  if (game.started) $('#m-intro').hidden = true;
+})();
+</script>
+</body>
+</html>
