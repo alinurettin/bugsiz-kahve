@@ -1,0 +1,680 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Bir kural, 12 hatalı sürüm, yalnızca 6 test hakkı. Doğru girdileri seç, kaç bug yakaladığını gör.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="6 Testte Kaç Bug? Test tasarımı oyunu">
+<meta property="og:description" content="Bir kural, 12 hatalı sürüm, yalnızca 6 test hakkı. Doğru girdileri seç, kaç bug yakaladığını gör.">
+<meta name="twitter:card" content="summary_large_image">
+<meta property="og:url" content="https://alinurettin.github.io/bugsiz-kahve/6-test/">
+<meta property="og:image" content="https://alinurettin.github.io/bugsiz-kahve/6-test/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="627">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>6 Testte Kaç Bug?</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Mono:wght@500;600&family=Instrument+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: one narrow column, phone-first: the rule, a strip of version tiles, the test bench, then the log.
+   One deliberate look, the yellow inspection-sticker world of the series. There is no dark variant on purpose. */
+:root {
+  --bg: #FFD43B; --ink: #1A190F; --paper: #FFF7D6; --field: #FFFDF4; --soft: #4F4A30;
+  --bad: #B3261E; --scrim: rgba(26, 25, 15, .6);
+  --f-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body: "Instrument Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 16px; line-height: 1.5; -webkit-text-size-adjust: 100%; }
+h1, h2, h3, p, ul, ol { margin: 0; }
+ul, ol { padding: 0; list-style: none; }
+button, input, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; touch-action: manipulation; }
+:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
+.gizli { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+.page { max-width: 720px; margin-inline: auto; padding-block: 28px 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 20px; }
+
+/* ---------- header ---------- */
+.top { display: grid; gap: 10px; }
+.kicker { font-family: var(--f-mono); font-weight: 600; font-size: .8125rem; letter-spacing: .1em; }
+h1 { font-family: var(--f-display); font-weight: 800; font-size: clamp(2.25rem, 11vw, 4.25rem); line-height: .95; letter-spacing: -.035em; text-wrap: balance; }
+.lede { font-size: 1.0625rem; max-width: 58ch; }
+
+/* ---------- round switcher ---------- */
+.tabs { display: flex; flex-wrap: wrap; gap: 8px; }
+.tab { min-height: 44px; padding: 6px 14px; border: 2px solid var(--ink); border-radius: 999px; background: transparent; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
+.tab[aria-current="step"] { background: var(--ink); color: var(--bg); }
+.tab .puan { font-family: var(--f-mono); font-size: .8125rem; }
+.tab.sonuc { margin-left: auto; }
+
+/* ---------- rule ---------- */
+.kart { background: var(--paper); border: 2px solid var(--ink); border-radius: 12px; padding: 16px; display: grid; gap: 10px; min-width: 0; }
+.kart h2 { font-family: var(--f-display); font-weight: 800; font-size: 1.5rem; line-height: 1.1; letter-spacing: -.02em; }
+.kural-metin { display: grid; gap: 6px; max-width: 60ch; }
+.not { font-size: .875rem; color: var(--soft); }
+
+/* ---------- version tiles ---------- */
+.pano { display: grid; gap: 8px; }
+.pano-bas { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font-weight: 600; }
+.pano-bas .say { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+.kareler { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; }
+.kare-s { aspect-ratio: 1; max-width: 100%; display: grid; place-items: center; border: 2px solid var(--ink); border-radius: 8px; background: var(--paper); color: var(--soft); font-family: var(--f-mono); font-weight: 600; }
+.kare-s.acik { background: var(--ink); color: var(--bg); }
+.kare-s.yeni { animation: zipla .5s ease-out; }
+@keyframes zipla { 0% { transform: scale(.6); } 60% { transform: scale(1.15); } 100% { transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) { .kare-s.yeni { animation: none; } }
+@media (min-width: 600px) { .kareler { grid-template-columns: repeat(12, minmax(0, 1fr)); } }
+
+/* ---------- test bench ---------- */
+.tezgah { box-shadow: 5px 5px 0 var(--ink); }
+.hak { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-weight: 600; }
+.noktalar { display: inline-flex; gap: 5px; }
+.nokta { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--ink); }
+.nokta.dolu { background: var(--ink); }
+.giris { display: grid; gap: 6px; }
+.giris label { font-size: .875rem; font-weight: 600; display: flex; justify-content: space-between; gap: 8px; }
+.sayac { font-family: var(--f-mono); font-weight: 500; color: var(--soft); }
+.satir { display: flex; flex-wrap: wrap; gap: 8px; }
+.satir input { flex: 1 1 140px; min-width: 0; min-height: 48px; padding: 8px 12px; border: 2px solid var(--ink); border-radius: 8px; background: var(--field); font-family: var(--f-mono); font-size: 1.0625rem; }
+.btn { min-height: 48px; padding: 8px 16px; border: 2px solid var(--ink); border-radius: 8px; background: transparent; font-weight: 600; white-space: nowrap; }
+.btn.birincil { background: var(--ink); color: var(--bg); flex: 1 1 auto; }
+.btn.kare { width: 48px; padding: 0; font-family: var(--f-mono); font-size: 1.25rem; }
+.ikili { display: inline-flex; flex: 1 1 auto; }
+.ikili .btn { flex: 1 1 auto; border-radius: 0; }
+.ikili .btn:first-child { border-radius: 8px 0 0 8px; border-right-width: 0; }
+.ikili .btn:last-child { border-radius: 0 8px 8px 0; }
+.btn.sec[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+.btn:disabled, .satir input:disabled { opacity: .45; cursor: not-allowed; }
+.mesaj { font-size: .9375rem; }
+.mesaj:empty { display: none; }
+.mesaj.hata { color: var(--bad); font-weight: 600; }
+
+/* ---------- round finished ---------- */
+.bitis { background: var(--ink); color: var(--paper); border-radius: 12px; padding: 18px; display: grid; gap: 12px; }
+.bitis .kicker { color: var(--bg); }
+.bitis .skor { font-family: var(--f-display); font-weight: 800; font-size: clamp(3rem, 16vw, 4.5rem); line-height: .9; letter-spacing: -.03em; color: var(--bg); font-variant-numeric: tabular-nums; }
+.bitis .deneme { font-family: var(--f-mono); font-size: .8125rem; }
+.bitis .btn { border-color: var(--bg); color: var(--bg); }
+.bitis .btn.birincil { background: var(--bg); color: var(--ink); flex: 0 1 auto; }
+.bitis :focus-visible { outline-color: var(--bg); }
+.eylemler { display: flex; flex-wrap: wrap; gap: 8px; }
+.ipuclari { display: grid; gap: 8px; font-size: .9375rem; }
+.ipuclari li { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; align-items: start; }
+.ipuclari .num { background: var(--bg); color: var(--ink); }
+
+/* ---------- log ---------- */
+.gunluk-bas { font-family: var(--f-display); font-weight: 800; font-size: 1.25rem; letter-spacing: -.01em; }
+.kayit { display: grid; gap: 10px; padding-block: 14px; border-top: 2px solid var(--ink); }
+.kayit-bas { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.kayit .no { font-family: var(--f-mono); font-size: .8125rem; font-weight: 600; }
+code { font-family: var(--f-mono); font-weight: 600; font-size: 1.0625rem; background: var(--paper); border: 2px solid var(--ink); border-radius: 6px; padding: 1px 8px; overflow-wrap: anywhere; }
+.kazanc { margin-left: auto; font-family: var(--f-mono); font-weight: 600; background: var(--ink); color: var(--bg); border: 2px solid var(--ink); border-radius: 999px; padding: 0 10px; }
+.kazanc.sifir { background: transparent; color: var(--ink); }
+.yak-liste { display: grid; gap: 10px; }
+.yak { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; align-items: start; }
+.num { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 6px; background: var(--ink); color: var(--bg); font-family: var(--f-mono); font-weight: 600; font-size: .875rem; }
+.yak b { display: block; line-height: 1.3; }
+.detay { display: block; font-size: .9375rem; }
+.cip { display: inline-block; font-family: var(--f-mono); font-size: .6875rem; font-weight: 600; line-height: 1.5; border: 1.5px solid var(--ink); border-radius: 4px; padding: 0 6px; margin-top: 4px; }
+.yok, .bos { font-size: .9375rem; }
+.bos { padding-block: 14px; border-top: 2px solid var(--ink); }
+
+/* ---------- answer key (only with #cevaplar) ---------- */
+.anahtar h3 { font-size: 1.0625rem; font-weight: 600; }
+.ideal { display: grid; gap: 4px; justify-items: start; }
+.ideal span { font-size: .9375rem; }
+
+.alt { font-size: .8125rem; border-top: 2px solid var(--ink); padding-top: 14px; display: grid; gap: 2px; }
+
+/* ---------- result sheet ---------- */
+.modal { position: fixed; inset: 0; z-index: 50; background: var(--scrim); display: grid; place-items: center; padding: 16px; overflow-y: auto; }
+.yaprak { width: min(560px, 100%); background: var(--paper); border: 2px solid var(--ink); border-radius: 12px; box-shadow: 6px 6px 0 var(--ink); padding: 20px; display: grid; gap: 12px; }
+.yaprak .skor { font-family: var(--f-display); font-weight: 800; font-size: clamp(3.25rem, 18vw, 5rem); line-height: .9; letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
+.unvan { font-family: var(--f-display); font-weight: 600; font-size: 1.375rem; line-height: 1.2; }
+.tur-ozet { display: grid; gap: 6px; border-top: 2px solid var(--ink); padding-top: 10px; }
+.tur-ozet li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 12px; }
+.mono { font-family: var(--f-mono); font-size: .8125rem; }
+.yaprak label { font-size: .875rem; font-weight: 600; }
+textarea { width: 100%; resize: none; border: 2px solid var(--ink); border-radius: 8px; background: var(--field); padding: 10px; font-size: .9375rem; line-height: 1.4; }
+.yaprak .btn.birincil { flex: 0 1 auto; }
+</style>
+</head>
+<body>
+<div class="page">
+  <header class="top">
+    <p class="kicker">TEST TASARIMI OYUNU</p>
+    <h1>6 Testte Kaç Bug?</h1>
+    <p class="lede">Her turda bir kural ve o kuralın 12 hatalı sürümü var. Yalnızca 6 test girdisi seçebilirsin. Bir girdi, doğru sonuçtan farklı sonuç veren her hatalı sürümü yakalar.</p>
+  </header>
+
+  <nav class="tabs" id="sekmeler" aria-label="Turlar"></nav>
+
+  <main class="page-ic" id="tur" style="display:grid;gap:20px">
+    <section class="kart" aria-labelledby="kural-bas">
+      <p class="kicker">KURAL</p>
+      <h2 id="kural-bas"></h2>
+      <div class="kural-metin" id="kural-metin"></div>
+      <p class="not" id="kural-not"></p>
+    </section>
+
+    <section class="kart tezgah" id="tezgah" aria-label="Test girdisi">
+      <div class="hak"><span>Kalan test: <span id="hak-say"></span></span><span class="noktalar" id="noktalar" aria-hidden="true"></span></div>
+
+      <form class="giris" id="f-yas" novalidate>
+        <label for="g-yas">Yaş</label>
+        <div class="satir">
+          <button type="button" class="btn kare" id="isaret" aria-label="Sayının işaretini değiştir">±</button>
+          <input id="g-yas" type="text" inputmode="numeric" autocomplete="off" placeholder="örn. 30">
+          <button type="submit" class="btn birincil">Testi çalıştır</button>
+        </div>
+      </form>
+
+      <form class="giris" id="f-kupon" novalidate hidden>
+        <label for="g-kupon">Kupon kodu <span class="sayac" id="kupon-sayac">0 karakter</span></label>
+        <div class="satir">
+          <input id="g-kupon" type="text" maxlength="20" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="örn. KAHVE10">
+          <button type="submit" class="btn birincil" id="kupon-btn">Testi çalıştır</button>
+        </div>
+      </form>
+
+      <form class="giris" id="f-kargo" novalidate hidden>
+        <label for="g-tutar">Sepet tutarı (TL)</label>
+        <div class="satir">
+          <input id="g-tutar" type="text" inputmode="numeric" autocomplete="off" placeholder="örn. 750">
+          <div class="ikili" role="group" aria-label="Üyelik durumu">
+            <button type="button" class="btn sec" id="uye-evet" aria-pressed="false">Üye</button>
+            <button type="button" class="btn sec" id="uye-hayir" aria-pressed="true">Üye değil</button>
+          </div>
+          <button type="submit" class="btn birincil">Testi çalıştır</button>
+        </div>
+      </form>
+
+      <p class="mesaj" id="mesaj" role="status"></p>
+    </section>
+
+    <section class="bitis" id="bitis" aria-labelledby="bitis-bas" hidden>
+      <p class="kicker" id="bitis-bas">TUR BİTTİ</p>
+      <div class="skor" id="bitis-skor"></div>
+      <p id="bitis-metin"></p>
+      <p class="deneme" id="bitis-deneme"></p>
+      <ul class="ipuclari" id="ipuclari" hidden></ul>
+      <div class="eylemler">
+        <button type="button" class="btn birincil" id="sonraki-btn">Sonraki tur</button>
+        <button type="button" class="btn" id="tekrar-btn">Tekrar dene</button>
+        <button type="button" class="btn" id="ipucu-btn">İpucu göster</button>
+      </div>
+    </section>
+
+    <section class="pano" aria-labelledby="pano-bas">
+      <div class="pano-bas"><span id="pano-bas">Hatalı sürümler</span><span class="say" id="pano-say"></span></div>
+      <ul class="kareler" id="kareler"></ul>
+    </section>
+
+    <section aria-labelledby="gunluk-bas">
+      <h2 class="gunluk-bas" id="gunluk-bas">Testlerin</h2>
+      <ol id="gunluk"></ol>
+    </section>
+
+    <section class="kart anahtar" id="anahtar" aria-label="Cevap anahtarı" hidden>
+      <p class="kicker">CEVAP ANAHTARI</p>
+      <div id="anahtar-icerik" style="display:grid;gap:12px"></div>
+    </section>
+  </main>
+
+  <p class="gizli" id="duyuru" aria-live="polite"></p>
+
+  <footer class="alt">
+    <span>Bugsız Kahve serisinden bir test tasarımı oyunu.</span>
+    <span>Yazdıkların tarayıcından çıkmaz.</span>
+  </footer>
+</div>
+
+<div class="modal" id="m-sonuc" role="dialog" aria-modal="true" aria-labelledby="s-bas" hidden>
+  <div class="yaprak">
+    <p class="kicker" id="s-bas">İLK DENEME SKORUN</p>
+    <div class="skor" id="s-skor"></div>
+    <p class="unvan" id="s-unvan"></p>
+    <ul class="tur-ozet" id="s-turlar"></ul>
+    <div id="s-paylas" style="display:grid;gap:6px">
+      <label for="s-metin">Yoruma yapıştırmak için:</label>
+      <textarea id="s-metin" rows="5" readonly></textarea>
+    </div>
+    <div class="eylemler">
+      <button type="button" class="btn birincil" id="s-kopyala">Sonucu kopyala</button>
+      <button type="button" class="btn" id="s-kapat">Oyuna dön</button>
+      <button type="button" class="btn" id="s-sifirla">Baştan başla</button>
+    </div>
+  </div>
+</div>
+
+<script id="oyun-mantigi">
+/* Pure game logic: no DOM. Each round has one correct rule and a set of faulty versions of it.
+   A test input catches a version when that version's output differs from the correct output. */
+window.OYUN = (() => {
+  'use strict';
+  const SDA = 'Sınır değer analizi', DPA = 'Denklik paylarına ayırma', HT = 'Hata tahminleme', KTT = 'Karar tablosu testi';
+  const nf = new Intl.NumberFormat('tr-TR');
+  const tl = n => nf.format(n) + ' TL';
+
+  /* ---------------- Tur 1: yaş ---------------- */
+  const kabul = v => (v ? 'Kabul' : 'Ret');
+  const arada = (a, alt, ust) => a >= alt && a <= ust;
+  const yas = {
+    id: 'yas', ad: 'Yaş sınırı', kisa: 'Yaş',
+    kural: [
+      'Başvuru yapabilmek için yaş 18 ile 65 arasında olmalı (18 ve 65 dahil).',
+      'Uygun yaş → Kabul. Diğer her şey → Ret.'
+    ],
+    not: 'Girdi: −99 ile 150 arasında bir tam sayı.',
+    uygun: g => Number.isInteger(g) && g >= -99 && g <= 150,
+    dogru: a => kabul(arada(a, 18, 65)),
+    goster: r => r,
+    etiket: g => String(g),
+    anahtar: g => String(g),
+    surumler: [
+      { ad: 'Üst sınır yok', detay: '65\'ten büyük her yaşı kabul ediyor.', teknik: DPA, ipucu: 'Üst sınırın ötesinde bir yaş dene.', f: a => kabul(a >= 18) },
+      { ad: '18 yaşı reddediyor', detay: 'Alt sınır > ile yazılmış, >= olmalıydı.', teknik: SDA, ipucu: 'Alt sınırın tam kendisini dene.', f: a => kabul(a > 18 && a <= 65) },
+      { ad: 'Herkesi kabul ediyor', detay: 'Hiçbir kontrol yapılmıyor.', teknik: DPA, ipucu: 'Geçersiz herhangi bir yaş yeter.', f: () => 'Kabul' },
+      { ad: '66 yaşı kabul ediyor', detay: 'Üst sınır 66\'ya kaymış.', teknik: SDA, ipucu: 'Üst sınırın bir üstünü dene.', f: a => kabul(arada(a, 18, 66)) },
+      { ad: 'Eksi işaretini siliyor', detay: '-30\'u 30 gibi okuyup kabul ediyor. -5 ile yakalanmaz, çünkü 5 zaten reddedilir.', teknik: HT, ipucu: 'İşareti silinince geçerli görünen bir sayı düşün.', f: a => kabul(arada(Math.abs(a), 18, 65)) },
+      { ad: '65 yaşı reddediyor', detay: 'Üst sınır < ile yazılmış, <= olmalıydı.', teknik: SDA, ipucu: 'Üst sınırın tam kendisini dene.', f: a => kabul(a >= 18 && a < 65) },
+      { ad: 'Alt sınır 21 yazılmış', detay: '18, 19 ve 20 yaşlarını reddediyor.', teknik: SDA, ipucu: 'Alt sınıra yakın geçerli bir yaş dene.', f: a => kabul(arada(a, 21, 65)) },
+      { ad: 'Alt sınır yok', detay: '18\'den küçük her yaşı kabul ediyor.', teknik: DPA, ipucu: 'Alt sınırın altında bir yaş dene.', f: a => kabul(a <= 65) },
+      { ad: '17 yaşı kabul ediyor', detay: 'Alt sınır 17\'ye kaymış.', teknik: SDA, ipucu: 'Alt sınırın bir altını dene.', f: a => kabul(arada(a, 17, 65)) },
+      { ad: '0 yaşını kabul ediyor', detay: 'Sıfır, boş değer sanılıp kontrolden kaçıyor.', teknik: HT, ipucu: 'Ne pozitif ne negatif olan sayıyı dene.', f: a => kabul(a === 0 || arada(a, 18, 65)) },
+      { ad: 'Üst sınır 56 yazılmış', detay: 'Rakamlar yer değiştirmiş: 57 ile 65 arası reddediliyor.', teknik: SDA, ipucu: 'Üst sınıra yakın geçerli bir yaş dene.', f: a => kabul(arada(a, 18, 56)) },
+      { ad: 'Herkesi reddediyor', detay: 'Geçerli yaşları da kabul etmiyor.', teknik: DPA, ipucu: 'Geçerli herhangi bir yaş yeter.', f: () => 'Ret' }
+    ],
+    ideal: [
+      { girdi: 17, neden: 'Alt sınırın bir altı.' },
+      { girdi: 18, neden: 'Alt sınırın kendisi.' },
+      { girdi: 65, neden: 'Üst sınırın kendisi.' },
+      { girdi: 66, neden: 'Üst sınırın bir üstü.' },
+      { girdi: -30, neden: 'Büyüklüğü geçerli olan negatif bir sayı. Eksi işaretini silen sürümü yalnızca böyle bir girdi yakalar.' },
+      { girdi: 0, neden: 'Sıfır özel bir değerdir; boş sanılıp kontrolden kaçabilir.' }
+    ]
+  };
+
+  /* ---------------- Tur 2: kupon kodu ---------------- */
+  const gecer = v => (v ? 'Geçerli' : 'Geçersiz');
+  const kupon = {
+    id: 'kupon', ad: 'Kupon kodu', kisa: 'Kupon',
+    kural: [
+      'Kupon kodu 5 ile 10 karakter arasında olmalı (5 ve 10 dahil).',
+      'Yalnızca İngiliz alfabesindeki harfler (A–Z, büyük ya da küçük) ve rakamlar (0–9) kullanılabilir.',
+      'Kurala uyan kod → Geçerli. Diğer her şey → Geçersiz.'
+    ],
+    not: 'Girdi: en fazla 20 karakterlik herhangi bir metin. Boş bırakmak da bir girdidir.',
+    uygun: g => typeof g === 'string' && g.length <= 20,
+    dogru: s => gecer(/^[A-Za-z0-9]{5,10}$/.test(s)),
+    goster: r => r,
+    etiket: g => (g === '' ? '(boş)' : '“' + g.replace(/ /g, '␣') + '”'),
+    anahtar: g => 's:' + g,
+    surumler: [
+      { ad: 'Karakter kontrolü yok', detay: 'Yalnızca uzunluğa bakıyor; tire, boşluk, her şey geçiyor.', teknik: DPA, ipucu: 'Uzunluğu doğru ama içinde izinsiz karakter olan bir kod dene.', f: s => gecer(s.length >= 5 && s.length <= 10) },
+      { ad: '5 karakterli kodu reddediyor', detay: 'Alt uzunluk sınırı > ile yazılmış.', teknik: SDA, ipucu: 'En kısa geçerli kodu dene.', f: s => gecer(/^[A-Za-z0-9]{6,10}$/.test(s)) },
+      { ad: 'Rakamla başlayan kodu reddediyor', detay: 'İlk karakterin harf olmasını şart koşuyor. Kuralda böyle bir şart yok.', teknik: DPA, ipucu: 'Geçerli kodların hepsi harfle başlamak zorunda değil.', f: s => gecer(/^[A-Za-z][A-Za-z0-9]{4,9}$/.test(s)) },
+      { ad: '11 karakterli kodu kabul ediyor', detay: 'Üst uzunluk sınırı 11\'e kaymış.', teknik: SDA, ipucu: 'En uzun geçerli koddan bir karakter fazlasını dene.', f: s => gecer(/^[A-Za-z0-9]{5,11}$/.test(s)) },
+      { ad: 'Boş kodu kabul ediyor', detay: 'Kod girilmediğinde kontrol atlanıyor.', teknik: HT, ipucu: 'Hiçbir şey yazmadan dene.', f: s => gecer(s === '' || /^[A-Za-z0-9]{5,10}$/.test(s)) },
+      { ad: 'Küçük harfli kodu reddediyor', detay: 'Yalnızca büyük harfe izin veriyor.', teknik: DPA, ipucu: 'Geçerli bir kodda küçük harf kullan.', f: s => gecer(/^[A-Z0-9]{5,10}$/.test(s)) },
+      { ad: '10 karakterli kodu reddediyor', detay: 'Üst uzunluk sınırı < ile yazılmış.', teknik: SDA, ipucu: 'En uzun geçerli kodu dene.', f: s => gecer(/^[A-Za-z0-9]{5,9}$/.test(s)) },
+      { ad: 'Türkçe harfleri kabul ediyor', detay: 'Ş, ğ, ı gibi harfler kuralda yok ama geçiyor.', teknik: HT, ipucu: 'Klavyendeki, İngilizcede olmayan harfleri düşün.', f: s => gecer(/^[\p{L}\p{N}]{5,10}$/u.test(s)) },
+      { ad: 'Her kodu reddediyor', detay: 'Geçerli kodları da kabul etmiyor.', teknik: DPA, ipucu: 'Geçerli herhangi bir kod yeter.', f: () => 'Geçersiz' },
+      { ad: '4 karakterli kodu kabul ediyor', detay: 'Alt uzunluk sınırı 4\'e kaymış.', teknik: SDA, ipucu: 'En kısa geçerli koddan bir karakter azını dene.', f: s => gecer(/^[A-Za-z0-9]{4,10}$/.test(s)) },
+      { ad: 'Rakam içeren kodu reddediyor', detay: 'Yalnızca harfe izin veriyor.', teknik: DPA, ipucu: 'Geçerli bir kodda rakam kullan.', f: s => gecer(/^[A-Za-z]{5,10}$/.test(s)) },
+      { ad: 'Uzunluk üst sınırı yok', detay: '11 ve daha uzun kodları kabul ediyor.', teknik: DPA, ipucu: 'Çok uzun bir kod dene.', f: s => gecer(/^[A-Za-z0-9]{5,}$/.test(s)) }
+    ],
+    ideal: [
+      { girdi: '1aB2c', neden: '5 karakter, rakamla başlıyor, içinde büyük harf, küçük harf ve rakam var. Tek testte birkaç geçerli payı kapsar.' },
+      { girdi: 'ABCDEFGHIJ', neden: '10 karakter: üst uzunluk sınırının kendisi.' },
+      { girdi: 'AB12', neden: '4 karakter: alt uzunluk sınırının bir altı.' },
+      { girdi: 'ABCDEFGHIJK', neden: '11 karakter: üst uzunluk sınırının bir üstü.' },
+      { girdi: 'KAHVEŞ', neden: 'Uzunluğu geçerli ama içinde Türkçe harf var.' },
+      { girdi: '', neden: 'Boş girdi.' }
+    ]
+  };
+
+  /* ---------------- Tur 3: kargo ve indirim ---------------- */
+  const kargoUcreti = t => (t >= 500 ? 0 : 49);
+  const indirim = (t, u) => (u && t >= 1000 ? 100 : 0);
+  const kargo = {
+    id: 'kargo', ad: 'Kargo ve indirim', kisa: 'Kargo',
+    kural: [
+      'Sepet tutarı 500 TL ve üzeriyse kargo ücretsiz, altındaysa 49 TL.',
+      'Üyeler, 1.000 TL ve üzeri sepette 100 TL indirim alır.',
+      'Ödenecek tutar = sepet − indirim + kargo. Kargo, indirimden önceki sepet tutarına göre belirlenir.'
+    ],
+    not: 'Girdi: 1 ile 5.000 arasında tam sayı bir sepet tutarı ve üyelik durumu.',
+    uygun: g => !!g && Number.isInteger(g.t) && g.t >= 1 && g.t <= 5000 && typeof g.u === 'boolean',
+    dogru: ({ t, u }) => t - indirim(t, u) + kargoUcreti(t),
+    goster: r => tl(r),
+    etiket: g => tl(g.t) + ' · ' + (g.u ? 'üye' : 'üye değil'),
+    anahtar: g => g.t + '|' + (g.u ? 1 : 0),
+    surumler: [
+      { ad: 'Kargo ücretini hiç eklemiyor', detay: '500 TL altındaki sepetlerde 49 TL eksik hesaplıyor.', teknik: DPA, ipucu: 'Kargo ücreti alınması gereken bir sepet dene.', f: ({ t, u }) => t - indirim(t, u) },
+      { ad: 'Tam 500 TL\'de kargo alıyor', detay: 'Kargo eşiği > ile yazılmış, >= olmalıydı.', teknik: SDA, ipucu: 'Kargo eşiğinin tam kendisini dene.', f: ({ t, u }) => t - indirim(t, u) + (t > 500 ? 0 : 49) },
+      { ad: 'Üye olmayana da indirim veriyor', detay: 'Üyelik kontrolü unutulmuş.', teknik: KTT, ipucu: 'Üye olmayan biriyle yüksek tutarlı bir sepet dene.', f: ({ t }) => t - (t >= 1000 ? 100 : 0) + kargoUcreti(t) },
+      { ad: '999 TL\'de indirim veriyor', detay: 'İndirim eşiği 999\'a kaymış.', teknik: SDA, ipucu: 'Bir üyeyle indirim eşiğinin bir altını dene.', f: ({ t, u }) => t - (u && t >= 999 ? 100 : 0) + kargoUcreti(t) },
+      { ad: 'Üyeden hiç kargo almıyor', detay: 'Kuralda üyelere ücretsiz kargo yok.', teknik: KTT, ipucu: 'Bir üyeyle kargo ücreti alınması gereken bir sepet dene.', f: ({ t, u }) => t - indirim(t, u) + (u ? 0 : kargoUcreti(t)) },
+      { ad: 'İndirimi %10 hesaplıyor', detay: '100 TL sabit olmalıydı. Tam 1.000 TL\'de ikisi aynı çıktığı için fark görünmez.', teknik: DPA, ipucu: 'Bir üyeyle indirim eşiğinin epey üstünde bir sepet dene.', f: ({ t, u }) => t - (u && t >= 1000 ? Math.round(t * 0.1) : 0) + kargoUcreti(t) },
+      { ad: 'Tam 1.000 TL\'de indirim vermiyor', detay: 'İndirim eşiği > ile yazılmış, >= olmalıydı.', teknik: SDA, ipucu: 'Bir üyeyle indirim eşiğinin tam kendisini dene.', f: ({ t, u }) => t - (u && t > 1000 ? 100 : 0) + kargoUcreti(t) },
+      { ad: 'Üye olmayandan hep kargo alıyor', detay: '500 TL üstündeki sepetlerde de 49 TL ekliyor.', teknik: KTT, ipucu: 'Üye olmayan biriyle kargosu ücretsiz olması gereken bir sepet dene.', f: ({ t, u }) => t - indirim(t, u) + (u ? kargoUcreti(t) : 49) },
+      { ad: '499 TL\'de kargoyu ücretsiz yapıyor', detay: 'Kargo eşiği 499\'a kaymış.', teknik: SDA, ipucu: 'Kargo eşiğinin bir altını dene.', f: ({ t, u }) => t - indirim(t, u) + (t >= 499 ? 0 : 49) },
+      { ad: 'İndirimi iki kez uyguluyor', detay: '100 yerine 200 TL düşüyor.', teknik: DPA, ipucu: 'İndirim alması gereken bir üye sepeti yeter.', f: ({ t, u }) => t - 2 * indirim(t, u) + kargoUcreti(t) },
+      { ad: 'Üyeye her sepette indirim veriyor', detay: '1.000 TL eşiği unutulmuş.', teknik: KTT, ipucu: 'Bir üyeyle indirim almaması gereken bir sepet dene.', f: ({ t, u }) => t - (u ? 100 : 0) + kargoUcreti(t) },
+      { ad: 'İndirim eşiğini 500 TL sanıyor', detay: 'Kargo eşiğiyle karıştırılmış.', teknik: KTT, ipucu: 'Bir üyeyle iki eşiğin arasında kalan bir sepet dene.', f: ({ t, u }) => t - (u && t >= 500 ? 100 : 0) + kargoUcreti(t) }
+    ],
+    ideal: [
+      { girdi: { t: 499, u: true }, neden: 'Kargo eşiğinin bir altı. Üye olarak denemek, üyeden kargo almayan sürümü de yakalar.' },
+      { girdi: { t: 500, u: true }, neden: 'Kargo eşiğinin kendisi.' },
+      { girdi: { t: 999, u: true }, neden: 'İndirim eşiğinin bir altı.' },
+      { girdi: { t: 1000, u: true }, neden: 'İndirim eşiğinin kendisi.' },
+      { girdi: { t: 2000, u: true }, neden: 'Eşiğin epey üstü. Yüzde hatası ancak burada görünür.' },
+      { girdi: { t: 2000, u: false }, neden: 'Üye olmayan, yüksek tutarlı sepet.' }
+    ]
+  };
+
+  const yakalananlar = (tur, girdi) => {
+    const beklenen = tur.dogru(girdi);
+    return tur.surumler.map((s, k) => (s.f(girdi) !== beklenen ? k : -1)).filter(k => k >= 0);
+  };
+
+  return { hak: 6, turlar: [yas, kupon, kargo], yakalananlar };
+})();
+</script>
+
+<script>
+(() => {
+  'use strict';
+  document.documentElement.lang = 'tr';
+
+  const O = window.OYUN, T = O.turlar, HAK = O.hak;
+  const $ = (s, r = document) => r.querySelector(s);
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const KEY = 'altitest.v1';
+  const turNo = id => T.findIndex(t => t.id === id);
+
+  const durum = { tur: 0, turlar: T.map(() => ({ girdiler: [], deneme: 1, ilk: null, enIyi: null, ipucu: false })) };
+  let sonYeni = new Set();   // versions caught by the latest test, for the tile pop
+  let bosOnay = false;       // an empty coupon needs a second press
+  let uye = false;
+
+  function kaydet() {
+    try { localStorage.setItem(KEY, JSON.stringify(durum)); } catch (e) { /* storage unavailable: play on without it */ }
+  }
+  function yukle() {
+    try {
+      const d = JSON.parse(localStorage.getItem(KEY) || 'null');
+      if (!d || !Array.isArray(d.turlar)) return;
+      durum.tur = Math.min(Math.max(d.tur | 0, 0), T.length - 1);
+      d.turlar.slice(0, T.length).forEach((x, i) => {
+        if (!x) return;
+        const t = T[i], h = durum.turlar[i];
+        h.girdiler = (Array.isArray(x.girdiler) ? x.girdiler : []).filter(g => t.uygun(g)).slice(0, HAK);
+        h.deneme = Math.max(1, x.deneme | 0);
+        h.ilk = Number.isInteger(x.ilk) ? x.ilk : null;
+        h.enIyi = Number.isInteger(x.enIyi) ? x.enIyi : null;
+        h.ipucu = !!x.ipucu;
+      });
+    } catch (e) { /* unreadable progress: start fresh */ }
+  }
+
+  /* Replays the current attempt's inputs and returns what each one caught. */
+  function hesapla(i) {
+    const t = T[i], yakalanan = new Set(), testler = [];
+    for (const g of durum.turlar[i].girdiler) {
+      const yeni = O.yakalananlar(t, g).filter(k => !yakalanan.has(k));
+      yeni.forEach(k => yakalanan.add(k));
+      testler.push({ etiket: t.etiket(g), sonuc: t.goster(t.dogru(g)), yeni });
+    }
+    return { testler, yakalanan, bitti: testler.length >= HAK };
+  }
+
+  const surumHTML = (t, k) => {
+    const s = t.surumler[k];
+    return `<li class="yak"><span class="num">${k + 1}</span><div><b>${esc(s.ad)}</b><span class="detay">${esc(s.detay)}</span><span class="cip">${esc(s.teknik)}</span></div></li>`;
+  };
+
+  function ciz() {
+    const i = durum.tur, t = T[i], d = durum.turlar[i], h = hesapla(i), n = t.surumler.length;
+
+    $('#sekmeler').innerHTML = T.map((x, k) => {
+      const ilk = durum.turlar[k].ilk;
+      return `<button type="button" class="tab" data-tur="${k}"${k === i ? ' aria-current="step"' : ''}>Tur ${k + 1} · ${esc(x.kisa)}${ilk === null ? '' : `<span class="puan">${ilk}/${x.surumler.length}</span>`}</button>`;
+    }).join('') + '<button type="button" class="tab sonuc" id="sonuc-ac">Sonuç</button>';
+
+    $('#kural-bas').textContent = `Tur ${i + 1} · ${t.ad}`;
+    $('#kural-metin').innerHTML = t.kural.map(p => `<p>${esc(p)}</p>`).join('');
+    $('#kural-not').textContent = t.not;
+
+    $('#pano-say').textContent = `${h.yakalanan.size} / ${n} yakalandı`;
+    $('#kareler').innerHTML = t.surumler.map((s, k) => {
+      const yak = h.yakalanan.has(k);
+      return `<li class="kare-s${yak ? ' acik' : ''}${sonYeni.has(k) ? ' yeni' : ''}" aria-label="Hatalı sürüm ${k + 1}: ${yak ? 'yakalandı' : 'henüz yakalanmadı'}">${yak ? k + 1 : '?'}</li>`;
+    }).join('');
+
+    const kalan = HAK - h.testler.length;
+    $('#tezgah').hidden = h.bitti;
+    $('#hak-say').textContent = kalan;
+    $('#noktalar').innerHTML = Array.from({ length: HAK }, (_, k) => `<span class="nokta${k < kalan ? ' dolu' : ''}"></span>`).join('');
+    T.forEach(x => { $('#f-' + x.id).hidden = x.id !== t.id; });
+
+    const bitis = $('#bitis');
+    bitis.hidden = !h.bitti;
+    if (h.bitti) {
+      const s = h.yakalanan.size, kacan = n - s;
+      $('#bitis-skor').textContent = `${s} / ${n}`;
+      $('#bitis-metin').textContent = kacan === 0
+        ? `${n} hatalı sürümün hepsini ${HAK} testle yakaladın.`
+        : `${kacan} hatalı sürüm kaçtı. Farklı girdilerle yeniden deneyebilirsin.`;
+      $('#bitis-deneme').textContent = `Deneme ${d.deneme} · İlk denemen ${d.ilk}/${n} · En iyin ${d.enIyi}/${n}`;
+      const ip = $('#ipuclari');
+      ip.hidden = !(d.ipucu && kacan > 0);
+      ip.innerHTML = t.surumler.map((sv, k) => (h.yakalanan.has(k) ? '' : `<li><span class="num">${k + 1}</span><span>${esc(sv.ipucu)}</span></li>`)).join('');
+      $('#ipucu-btn').hidden = kacan === 0;
+      $('#ipucu-btn').textContent = d.ipucu ? 'İpuçlarını gizle' : 'İpucu göster';
+      $('#sonraki-btn').textContent = i === T.length - 1 ? 'Sonucu gör' : 'Sonraki tur';
+    }
+
+    $('#gunluk').innerHTML = h.testler.length
+      ? h.testler.map((x, k) => `<li class="kayit">
+          <div class="kayit-bas"><span class="no">Test ${k + 1}</span><code>${esc(x.etiket)}</code><span>doğru sonuç: <b>${esc(x.sonuc)}</b></span><span class="kazanc${x.yeni.length ? '' : ' sifir'}">+${x.yeni.length}</span></div>
+          ${x.yeni.length ? `<ul class="yak-liste">${x.yeni.map(m => surumHTML(t, m)).join('')}</ul>` : '<p class="yok">Yeni yakalanan yok. Kalan hatalı sürümler bu girdide doğru sonucu veriyor.</p>'}
+        </li>`).reverse().join('')
+      : '<li class="bos">Henüz test yok. İlk girdini yaz ve çalıştır.</li>';
+
+    const acik = location.hash === '#cevaplar';
+    $('#anahtar').hidden = !acik;
+    if (acik) {
+      $('#anahtar-icerik').innerHTML = `<h3>Bütün hatalı sürümler</h3><ul class="yak-liste">${t.surumler.map((_, k) => surumHTML(t, k)).join('')}</ul>
+        <h3>Hepsini yakalayan ${HAK} girdi</h3><ul class="yak-liste">${t.ideal.map(x => `<li class="ideal"><code>${esc(t.etiket(x.girdi))}</code><span>${esc(x.neden)} Yakaladıkları: ${O.yakalananlar(t, x.girdi).map(k => k + 1).join(', ')}.</span></li>`).join('')}</ul>`;
+    }
+  }
+
+  function mesaj(metin, hata) {
+    const el = $('#mesaj');
+    el.textContent = metin || '';
+    el.className = 'mesaj' + (hata ? ' hata' : '');
+  }
+
+  /* Runs one test in the current round. Returns true when the test was spent. */
+  function calistir(g) {
+    const i = durum.tur, t = T[i], d = durum.turlar[i];
+    if (d.girdiler.length >= HAK) return false;
+    if (d.girdiler.some(x => t.anahtar(x) === t.anahtar(g))) { mesaj('Bu girdiyi bu denemede zaten kullandın.', true); return false; }
+    const once = hesapla(i).yakalanan;
+    d.girdiler.push(g);
+    const h = hesapla(i);
+    sonYeni = new Set([...h.yakalanan].filter(k => !once.has(k)));
+    if (h.bitti) {
+      if (d.ilk === null) d.ilk = h.yakalanan.size;
+      d.enIyi = Math.max(d.enIyi === null ? 0 : d.enIyi, h.yakalanan.size);
+    }
+    kaydet();
+    mesaj('');
+    ciz();
+    const son = h.testler[h.testler.length - 1];
+    $('#duyuru').textContent = `Test ${h.testler.length}: ${son.etiket}. Doğru sonuç ${son.sonuc}. ${son.yeni.length} yeni hatalı sürüm yakalandı.`;
+    if (h.bitti) $('#sonraki-btn').focus();
+    return true;
+  }
+
+  const tamSayi = metin => { const m = metin.trim().replace(/−/g, '-'); return /^-?\d+$/.test(m) ? Number(m) : null; };
+
+  $('#f-yas').addEventListener('submit', e => {
+    e.preventDefault();
+    const giris = $('#g-yas'), n = tamSayi(giris.value);
+    if (n === null || !T[turNo('yas')].uygun(n)) { mesaj('−99 ile 150 arasında bir tam sayı gir.', true); giris.focus(); return; }
+    if (calistir(n)) giris.value = '';
+    if (!giris.closest('[hidden]')) giris.focus();
+  });
+  $('#isaret').addEventListener('click', () => {
+    const giris = $('#g-yas'), v = giris.value.trim().replace(/−/g, '-');
+    giris.value = v.startsWith('-') ? v.slice(1) : '-' + v;
+    giris.focus();
+  });
+
+  const kuponSayac = () => { $('#kupon-sayac').textContent = $('#g-kupon').value.length + ' karakter'; };
+  const bosSifirla = () => { bosOnay = false; $('#kupon-btn').textContent = 'Testi çalıştır'; };
+  $('#g-kupon').addEventListener('input', () => { kuponSayac(); bosSifirla(); });
+  $('#f-kupon').addEventListener('submit', e => {
+    e.preventDefault();
+    const giris = $('#g-kupon'), s = giris.value;
+    if (s === '' && !bosOnay) {
+      bosOnay = true;
+      $('#kupon-btn').textContent = 'Boş kodu test et';
+      mesaj('Boş bırakmak da bir test girdisidir. Çalıştırmak için düğmeye bir daha bas.');
+      return;
+    }
+    bosSifirla();
+    if (!T[turNo('kupon')].uygun(s)) { mesaj('Kod en fazla 20 karakter olabilir.', true); giris.focus(); return; }
+    if (calistir(s)) { giris.value = ''; kuponSayac(); }
+    if (!giris.closest('[hidden]')) giris.focus();
+  });
+
+  function uyeSec(v) {
+    uye = v;
+    $('#uye-evet').setAttribute('aria-pressed', String(v));
+    $('#uye-hayir').setAttribute('aria-pressed', String(!v));
+  }
+  $('#uye-evet').addEventListener('click', () => uyeSec(true));
+  $('#uye-hayir').addEventListener('click', () => uyeSec(false));
+  $('#f-kargo').addEventListener('submit', e => {
+    e.preventDefault();
+    const giris = $('#g-tutar'), n = tamSayi(giris.value), g = { t: n, u: uye };
+    if (n === null || !T[turNo('kargo')].uygun(g)) { mesaj('1 ile 5.000 arasında tam sayı bir tutar gir.', true); giris.focus(); return; }
+    if (calistir(g)) giris.value = '';
+    if (!giris.closest('[hidden]')) giris.focus();
+  });
+
+  function turaGit(k) {
+    durum.tur = k;
+    sonYeni = new Set();
+    bosSifirla();
+    mesaj('');
+    kaydet();
+    ciz();
+  }
+  $('#sekmeler').addEventListener('click', e => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    if (b.id === 'sonuc-ac') return sonucAc(b);
+    turaGit(Number(b.dataset.tur));
+    const yeni = $(`#sekmeler [data-tur="${durum.tur}"]`);
+    if (yeni) yeni.focus();
+  });
+
+  $('#sonraki-btn').addEventListener('click', e => {
+    if (durum.tur === T.length - 1) return sonucAc(e.currentTarget);
+    turaGit(durum.tur + 1);
+    $('#kural-bas').scrollIntoView({ block: 'start' });
+    const giris = $('#f-' + T[durum.tur].id + ' input');
+    if (giris && !giris.closest('[hidden]')) giris.focus({ preventScroll: true });
+  });
+  $('#tekrar-btn').addEventListener('click', () => {
+    const d = durum.turlar[durum.tur];
+    d.girdiler = [];
+    d.deneme += 1;
+    sonYeni = new Set();
+    kaydet();
+    ciz();
+    const giris = $('#f-' + T[durum.tur].id + ' input');
+    if (giris) giris.focus();
+  });
+  $('#ipucu-btn').addEventListener('click', () => {
+    const d = durum.turlar[durum.tur];
+    d.ipucu = !d.ipucu;
+    kaydet();
+    ciz();
+  });
+
+  /* ---------- result sheet ---------- */
+  const unvan = o => (o >= 1 ? 'Efsane Test Tasarımcısı' : o >= 0.85 ? 'Usta Test Tasarımcısı' : o >= 0.7 ? 'Kıdemli Test Mühendisi' : o >= 0.5 ? 'Test Uzmanı' : 'Meraklı Kullanıcı');
+  let donus = null;
+  function sifirlamaHazirla() { const b = $('#s-sifirla'); b.textContent = 'Baştan başla'; delete b.dataset.onay; }
+  function sonucAc(acan) {
+    const biten = T.map((t, i) => ({ t, d: durum.turlar[i] })).filter(x => x.d.ilk !== null);
+    const top = biten.reduce((s, x) => s + x.d.ilk, 0), mak = biten.reduce((s, x) => s + x.t.surumler.length, 0);
+    $('#s-skor').textContent = biten.length ? `${top} / ${mak}` : '–';
+    $('#s-unvan').textContent = biten.length ? unvan(top / mak) : 'Henüz biten tur yok. Bir turu bitirince skorun burada görünür.';
+    $('#s-turlar').innerHTML = T.map((t, i) => {
+      const d = durum.turlar[i], n = t.surumler.length;
+      return `<li><span>Tur ${i + 1} · ${esc(t.kisa)}</span><span class="mono">${d.ilk === null ? 'bitmedi' : `ilk ${d.ilk}/${n} · en iyi ${d.enIyi}/${n} · ${d.deneme} deneme`}</span></li>`;
+    }).join('');
+    const satir = T.map((t, i) => `Tur ${i + 1}: ${durum.turlar[i].ilk === null ? '–' : durum.turlar[i].ilk + '/' + t.surumler.length}`).join(' · ');
+    $('#s-metin').value = biten.length
+      ? `6 Testte Kaç Bug? 🐞\nİlk denemede ${mak} hatalı sürümün ${top} tanesini yakaladım.\n${satir}\nUnvanım: ${unvan(top / mak)}. Sen kaç tane yakalarsın?`
+      : '';
+    $('#s-paylas').hidden = !biten.length;
+    $('#s-kopyala').hidden = !biten.length;
+    $('#s-kopyala').textContent = 'Sonucu kopyala';
+    sifirlamaHazirla();
+    donus = acan || document.activeElement;
+    $('#m-sonuc').hidden = false;
+    (biten.length ? $('#s-kopyala') : $('#s-kapat')).focus();
+  }
+  function sonucKapat() {
+    $('#m-sonuc').hidden = true;
+    if (donus && document.contains(donus)) donus.focus();
+  }
+  $('#s-kapat').addEventListener('click', sonucKapat);
+  $('#m-sonuc').addEventListener('click', e => { if (e.target.id === 'm-sonuc') sonucKapat(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#m-sonuc').hidden) sonucKapat(); });
+  $('#s-kopyala').addEventListener('click', () => {
+    const ta = $('#s-metin'), btn = $('#s-kopyala');
+    const elle = () => {
+      ta.focus(); ta.select();
+      let ok = false;
+      try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      btn.textContent = ok ? 'Kopyalandı' : 'Metin seçildi, kopyala';
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(ta.value).then(() => { btn.textContent = 'Kopyalandı'; }, elle);
+    else elle();
+  });
+  $('#s-sifirla').addEventListener('click', e => {
+    const b = e.currentTarget;
+    if (!b.dataset.onay) { b.dataset.onay = '1'; b.textContent = 'Emin misin? Her şey silinir'; return; }
+    durum.tur = 0;
+    durum.turlar = T.map(() => ({ girdiler: [], deneme: 1, ilk: null, enIyi: null, ipucu: false }));
+    try { localStorage.removeItem(KEY); } catch (err) { /* nothing stored */ }
+    ['#g-yas', '#g-kupon', '#g-tutar'].forEach(s => { $(s).value = ''; });
+    kuponSayac(); bosSifirla(); uyeSec(false); mesaj('');
+    sonYeni = new Set();
+    $('#m-sonuc').hidden = true;
+    ciz();
+    window.scrollTo(0, 0);
+    $('#g-yas').focus({ preventScroll: true });
+  });
+
+  window.addEventListener('hashchange', ciz);
+
+  yukle();
+  ciz();
+})();
+</script>
+</body>
+</html>
