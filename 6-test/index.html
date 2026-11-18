@@ -635,6 +635,10 @@ window.OYUN = (() => {
     sifirlamaHazirla();
     donus = acan || document.activeElement;
     $('#m-sonuc').hidden = false;
+    /* Grow the box to its text so the last line is never cut off on narrow screens. */
+    const ta = $('#s-metin');
+    ta.style.height = 'auto';
+    ta.style.height = (ta.scrollHeight + 4) + 'px';
     (biten.length ? $('#s-kopyala') : $('#s-kapat')).focus();
   }
   function sonucKapat() {
